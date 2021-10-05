@@ -1,0 +1,27 @@
+
+// Copyright (C) 2021 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
+
+//
+// Copyright 2020 Intel Corporation All Rights Reserved.
+//
+// The source code contained or described herein and all documents related to
+// the source code ("Material") are provided "As is", without warranty of any
+// kind, express or implied, including but not limited to the warranties of
+// merchantability, fitness for a particular purpose and noninfringement. In no
+// event shall the authors or copyright holders be liable for any claim, damages
+// or other liability, whether in an action of contract, tort or otherwise,
+// arising from, out of or in connection with the software or the use or other
+// dealings in the software.
+//
+
+#pragma once
+
+#define HEBENCH_API_VERSION_NEEDED_MAJOR        @API_BRIDGE_REQUIRED_VERSION_MAJOR@
+#define HEBENCH_API_VERSION_NEEDED_MINOR        @API_BRIDGE_REQUIRED_VERSION_MINOR@
+#define HEBENCH_API_VERSION_NEEDED_REVISION     @API_BRIDGE_REQUIRED_VERSION_REVISION@
+#ifndef API_BRIDGE_NOT_REQUIRED_VERSION_BUILD
+#define HEBENCH_API_VERSION_NEEDED_BUILD        "@API_BRIDGE_REQUIRED_VERSION_BUILD@"
+#else
+#define HEBENCH_API_VERSION_NEEDED_BUILD        HEBENCH_API_VERSION_BUILD
+#endif
