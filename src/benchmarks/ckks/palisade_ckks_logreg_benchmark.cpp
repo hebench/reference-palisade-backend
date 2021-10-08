@@ -416,7 +416,7 @@ void LogRegBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebench:
                 this->getEngine().template retrieveFromHandle<std::vector<lbcrypto::Plaintext>>(h_encoded_data, LogRegBenchmark::tagEncodedResult);
             std::vector<double> decoded = decodeResult(encoded_result, min_count);
             decoded.resize(min_count);
-            // convert local format to Test harness format
+            // convert local format to Test Harness format
             for (std::uint64_t result_sample_i = 0; result_sample_i < min_count; ++result_sample_i)
             {
                 if (result.p_buffers[result_sample_i].p && result.p_buffers[result_sample_i].size >= sizeof(double))

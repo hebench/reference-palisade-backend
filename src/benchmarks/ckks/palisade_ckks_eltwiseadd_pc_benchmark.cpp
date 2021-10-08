@@ -34,7 +34,7 @@ EltwiseAddPlainCipherBenchmarkDescription::EltwiseAddPlainCipherBenchmarkDescrip
     m_descriptor.scheme   = HEBENCH_HE_SCHEME_CKKS;
     m_descriptor.security = HEBPALISADE_HE_SECURITY_128;
     m_descriptor.other    = 0; // no extras needed for our purpose:
-        // Other back-ends can use this field to differentiate between
+        // Other backends can use this field to differentiate between
         // benchmarks for which internal parameters, not specified by
         // other fields of this structure, differ.
 
