@@ -10,10 +10,12 @@
 #include "engine/palisade_version.h"
 
 // include all benchmarks
+#include "benchmarks/bfv/palisade_bfv_dot_product_benchmark.h"
 #include "benchmarks/bfv/palisade_bfv_matmult_cipherbatchaxis_benchmark.h"
 #include "benchmarks/bfv/palisade_bfv_matmulteip_benchmark.h"
 #include "benchmarks/bfv/palisade_bfv_matmultrow_benchmark.h"
 #include "benchmarks/bfv/palisade_bfv_matmultval_benchmark.h"
+#include "benchmarks/ckks/palisade_ckks_dot_product_benchmark.h"
 #include "benchmarks/ckks/palisade_ckks_eltwiseadd_pc_benchmark.h"
 #include "benchmarks/ckks/palisade_ckks_logreg_benchmark.h"
 #include "benchmarks/ckks/palisade_ckks_matmult_cipherbatchaxis_benchmark.h"
@@ -92,16 +94,23 @@ void PalisadeEngine::init()
     addSecurityName(HEBPALISADE_HE_SECURITY_128, "128 bits");
 
     // add the all benchmark descriptors
-    addBenchmarkDescription(std::make_shared<pbe::bfv::MatMultCipherBatchAxisBenchmarkDescription>());
-    addBenchmarkDescription(std::make_shared<pbe::bfv::MatMultEIPBenchmarkDescription>());
-    addBenchmarkDescription(std::make_shared<pbe::bfv::MatMultRowBenchmarkDescription>());
-    addBenchmarkDescription(std::make_shared<pbe::bfv::MatMultValBenchmarkDescription>());
 
-    addBenchmarkDescription(std::make_shared<pbe::ckks::EltwiseAddPlainCipherBenchmarkDescription>());
+    addBenchmarkDescription(std::make_shared<pbe::bfv::DotProductBenchmarkDescription>(hebench::APIBridge::Category::Latency));
+    addBenchmarkDescription(std::make_shared<pbe::ckks::DotProductBenchmarkDescription>(hebench::APIBridge::Category::Latency));
+    addBenchmarkDescription(std::make_shared<pbe::bfv::DotProductBenchmarkDescription>(hebench::APIBridge::Category::Offline));
+    addBenchmarkDescription(std::make_shared<pbe::ckks::DotProductBenchmarkDescription>(hebench::APIBridge::Category::Offline));
+
+    addBenchmarkDescription(std::make_shared<pbe::bfv::MatMultCipherBatchAxisBenchmarkDescription>());
+    addBenchmarkDescription(std::make_shared<pbe::ckks::MatMultCipherBatchAxisBenchmarkDescription>());
+    addBenchmarkDescription(std::make_shared<pbe::bfv::MatMultValBenchmarkDescription>());
+    addBenchmarkDescription(std::make_shared<pbe::ckks::MatMultValBenchmarkDescription>());
+    addBenchmarkDescription(std::make_shared<pbe::bfv::MatMultRowBenchmarkDescription>());
+    addBenchmarkDescription(std::make_shared<pbe::ckks::MatMultRowBenchmarkDescription>());
+
     addBenchmarkDescription(std::make_shared<pbe::ckks::LogRegBenchmarkDescription>(hebench::APIBridge::Category::Latency));
     addBenchmarkDescription(std::make_shared<pbe::ckks::LogRegBenchmarkDescription>(hebench::APIBridge::Category::Offline, 100));
-    addBenchmarkDescription(std::make_shared<pbe::ckks::MatMultCipherBatchAxisBenchmarkDescription>());
+
+    addBenchmarkDescription(std::make_shared<pbe::ckks::EltwiseAddPlainCipherBenchmarkDescription>());
+    addBenchmarkDescription(std::make_shared<pbe::bfv::MatMultEIPBenchmarkDescription>());
     addBenchmarkDescription(std::make_shared<pbe::ckks::MatMultEIPBenchmarkDescription>());
-    addBenchmarkDescription(std::make_shared<pbe::ckks::MatMultRowBenchmarkDescription>());
-    addBenchmarkDescription(std::make_shared<pbe::ckks::MatMultValBenchmarkDescription>());
 }
