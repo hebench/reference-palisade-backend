@@ -190,7 +190,6 @@ void DotProductBenchmark::decode(hebench::APIBridge::Handle encoded_data, hebenc
     {
         int64_t *output_location = reinterpret_cast<int64_t *>(p_native->p_data_packs[0].p_buffers[result_i].p);
         std::vector<int64_t> result_vec;
-        //m_p_ctx_wrapper->BFVEncoder()->decode(params[result_i], result_vec); TODO REMOVE
         result_vec         = params[result_i]->GetPackedValue();
         output_location[0] = result_vec.front();
     }
@@ -209,7 +208,6 @@ hebench::APIBridge::Handle DotProductBenchmark::encrypt(hebench::APIBridge::Hand
         encrypted_data[param_i].resize(encoded_data_ref[param_i].size());
         for (unsigned int parameter_sample = 0; parameter_sample < encoded_data_ref[param_i].size(); parameter_sample++)
         {
-            //m_p_ctx_wrapper->encryptor()->encrypt(encoded_data_ref[param_i][parameter_sample], encrypted_data[param_i][parameter_sample]);
             encrypted_data[param_i][parameter_sample] = m_p_ctx_wrapper->context()->Encrypt(m_p_ctx_wrapper->publicKey(), encoded_data_ref[param_i][parameter_sample]);
         }
     }

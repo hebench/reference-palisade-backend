@@ -5,39 +5,45 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <iostream>
 #include <memory>
 #include <mutex>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
-#include "benchmarks/ckks/palisade_ckks_dot_product_benchmark.h"
+#include "benchmarks/bfv/palisade_bfv_element_wise_benchmark.h"
 #include "engine/palisade_engine.h"
 #include "engine/palisade_error.h"
 #include <omp.h>
 
-using namespace pbe::ckks;
+using namespace pbe::bfv;
 
-//-----------------------------------
-// class DotProductBenchmarkDescription
-//-----------------------------------
+//------------------------
+// class ElementWiseBenchmarkDescription
+//------------------------
 
-DotProductBenchmarkDescription::DotProductBenchmarkDescription(hebench::APIBridge::Category category)
+ElementWiseBenchmarkDescription::ElementWiseBenchmarkDescription(hebench::APIBridge::Category category, hebench::APIBridge::Workload op)
 {
+    if (op != hebench::APIBridge::Workload::EltwiseAdd
+        && op != hebench::APIBridge::Workload::EltwiseMultiply)
+        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Workload operation not supported."),
+                                         HEBENCH_ECODE_CRITICAL_ERROR);
+
     // initialize the descriptor for this benchmark
     std::memset(&m_descriptor, 0, sizeof(hebench::APIBridge::BenchmarkDescriptor));
-    m_descriptor.data_type = hebench::APIBridge::DataType::Float64;
+    m_descriptor.workload  = op;
+    m_descriptor.data_type = hebench::APIBridge::DataType::Int64;
     m_descriptor.category  = category;
     switch (category)
     {
     case hebench::APIBridge::Category::Latency:
-        m_descriptor.cat_params.latency.min_test_time_ms        = 0; // 2s
+        m_descriptor.cat_params.latency.min_test_time_ms        = 0; // any
         m_descriptor.cat_params.latency.warmup_iterations_count = 1;
         break;
 
     case hebench::APIBridge::Category::Offline:
-        m_descriptor.cat_params.offline.data_count[0] = 10;
-        m_descriptor.cat_params.offline.data_count[1] = 10;
+        m_descriptor.cat_params.offline.data_count[0] = 0; // flexible
+        m_descriptor.cat_params.offline.data_count[1] = 0;
         break;
 
     default:
@@ -46,36 +52,36 @@ DotProductBenchmarkDescription::DotProductBenchmarkDescription(hebench::APIBridg
     }
     m_descriptor.cipher_param_mask = HEBENCH_HE_PARAM_FLAGS_ALL_CIPHER;
     //
-    m_descriptor.scheme   = HEBENCH_HE_SCHEME_CKKS;
+    m_descriptor.scheme   = HEBENCH_HE_SCHEME_BFV;
     m_descriptor.security = HEBPALISADE_HE_SECURITY_128;
     m_descriptor.other    = 0; // no extra parameters
-    m_descriptor.workload = hebench::APIBridge::Workload::DotProduct;
 
-    hebench::cpp::WorkloadParams::DotProduct default_workload_params;
-    default_workload_params.n = 100;
-    default_workload_params.add<std::uint64_t>(DotProductBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
-    default_workload_params.add<std::uint64_t>(DotProductBenchmarkDescription::DefaultNumCoefficientModuli, "MultiplicativeDepth");
-    default_workload_params.add<std::uint64_t>(DotProductBenchmarkDescription::DefaultScaleBits, "ScaleBits");
+    hebench::cpp::WorkloadParams::VectorSize default_workload_params;
+    default_workload_params.n = 1000;
+    default_workload_params.add<std::uint64_t>(ElementWiseBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
+    default_workload_params.add<std::uint64_t>(ElementWiseBenchmarkDescription::DefaultMultiplicativeDepth, "MultiplicativeDepth");
+    default_workload_params.add<std::uint64_t>(ElementWiseBenchmarkDescription::DefaultCoeffModulusBits, "CoefficientModulusBits");
     this->addDefaultParameters(default_workload_params);
 }
 
-DotProductBenchmarkDescription::~DotProductBenchmarkDescription()
+ElementWiseBenchmarkDescription::~ElementWiseBenchmarkDescription()
 {
     // nothing needed in this example
 }
 
-hebench::cpp::BaseBenchmark *DotProductBenchmarkDescription::createBenchmark(hebench::cpp::BaseEngine &engine, const hebench::APIBridge::WorkloadParams *p_params)
+hebench::cpp::BaseBenchmark *ElementWiseBenchmarkDescription::createBenchmark(hebench::cpp::BaseEngine &engine, const hebench::APIBridge::WorkloadParams *p_params)
 {
-    return new DotProductBenchmark(engine, m_descriptor, *p_params);
+    PalisadeEngine &ex_engine = dynamic_cast<PalisadeEngine &>(engine);
+    return new ElementWiseBenchmark(ex_engine, m_descriptor, *p_params);
 }
 
-void DotProductBenchmarkDescription::destroyBenchmark(hebench::cpp::BaseBenchmark *p_bench)
+void ElementWiseBenchmarkDescription::destroyBenchmark(hebench::cpp::BaseBenchmark *p_bench)
 {
     if (p_bench)
         delete p_bench;
 }
 
-std::string DotProductBenchmarkDescription::getBenchmarkDescription(const hebench::APIBridge::WorkloadParams *p_w_params) const
+std::string ElementWiseBenchmarkDescription::getBenchmarkDescription(const hebench::APIBridge::WorkloadParams *p_w_params) const
 {
     std::stringstream ss;
     std::string s_tmp = BenchmarkDescription::getBenchmarkDescription(p_w_params);
@@ -84,74 +90,66 @@ std::string DotProductBenchmarkDescription::getBenchmarkDescription(const hebenc
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid null workload parameters `p_w_params`"),
                                          HEBENCH_ECODE_INVALID_ARGS);
 
-    std::size_t pmd        = p_w_params->params[DotProductBenchmarkDescription::Index_PolyModulusDegree].u_param;
-    std::size_t mult_depth = p_w_params->params[DotProductBenchmarkDescription::Index_NumCoefficientModuli].u_param;
-    std::size_t scale_bits = p_w_params->params[DotProductBenchmarkDescription::Index_ScaleBits].u_param;
+    std::size_t pmd        = p_w_params->params[ElementWiseBenchmarkDescription::Index_PolyModulusDegree].u_param;
+    std::size_t mult_depth = p_w_params->params[ElementWiseBenchmarkDescription::Index_NumCoefficientModuli].u_param;
+    std::size_t coeff_bits = p_w_params->params[ElementWiseBenchmarkDescription::Index_CoefficientModulusBits].u_param;
     if (!s_tmp.empty())
         ss << s_tmp << std::endl;
     ss << ", Encryption parameters" << std::endl
        << ", , HE Library, PALISADE 1.11.3" << std::endl
-       << ", , Key-switching technique, PALISADE Hybrid" << std::endl
        << ", , Poly modulus degree, " << pmd << std::endl
        << ", , Multiplicative Depth, " << mult_depth << std::endl
-       << ", , Scale, 2^" << scale_bits << std::endl
+       << ", , Coefficient moduli bits, " << coeff_bits << std::endl
        << ", Algorithm, " << AlgorithmName << ", " << AlgorithmDescription;
 
     return ss.str();
 }
 
 //------------------------
-// class DotProductBenchmark
+// class ElementWiseBenchmark
 //------------------------
 
-DotProductBenchmark::DotProductBenchmark(hebench::cpp::BaseEngine &engine,
-                                         const hebench::APIBridge::BenchmarkDescriptor &bench_desc,
-                                         const hebench::APIBridge::WorkloadParams &bench_params) :
+ElementWiseBenchmark::ElementWiseBenchmark(hebench::cpp::BaseEngine &engine,
+                                           const hebench::APIBridge::BenchmarkDescriptor &bench_desc,
+                                           const hebench::APIBridge::WorkloadParams &bench_params) :
     hebench::cpp::BaseBenchmark(engine, bench_desc, bench_params),
     m_w_params(bench_params)
 {
-    assert(bench_params.count >= DotProductBenchmarkDescription::NumWorkloadParams);
+    assert(bench_params.count >= ElementWiseBenchmarkDescription::NumWorkloadParams);
 
     if (m_w_params.n <= 0)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Vector size must be greater than 0."),
                                          HEBENCH_ECODE_INVALID_ARGS);
 
-    std::size_t poly_modulus_degree  = m_w_params.get<std::uint64_t>(DotProductBenchmarkDescription::Index_PolyModulusDegree);
-    std::size_t multiplicative_depth = m_w_params.get<std::uint64_t>(DotProductBenchmarkDescription::Index_NumCoefficientModuli);
-    std::size_t scale_bits           = m_w_params.get<std::uint64_t>(DotProductBenchmarkDescription::Index_ScaleBits);
+    std::size_t poly_modulus_degree  = m_w_params.get<std::uint64_t>(ElementWiseBenchmarkDescription::Index_PolyModulusDegree);
+    std::size_t multiplicative_depth = m_w_params.get<std::uint64_t>(ElementWiseBenchmarkDescription::Index_NumCoefficientModuli);
+    std::size_t coeff_mudulus_bits   = m_w_params.get<std::uint64_t>(ElementWiseBenchmarkDescription::Index_CoefficientModulusBits);
 
-    if (multiplicative_depth < 1)
+    if (coeff_mudulus_bits < 1)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Multiplicative depth must be greater than 0."),
                                          HEBENCH_ECODE_INVALID_ARGS);
 
-    m_p_ctx_wrapper = PalisadeContext::createCKKSContext(poly_modulus_degree,
-                                                         multiplicative_depth,
-                                                         scale_bits,
-                                                         lbcrypto::HEStd_128_classic);
+    m_p_ctx_wrapper = PalisadeContext::createBFVContext(poly_modulus_degree,
+                                                        multiplicative_depth,
+                                                        coeff_mudulus_bits,
+                                                        lbcrypto::HEStd_128_classic);
     m_p_ctx_wrapper->EvalMultKeyGen();
-    m_p_ctx_wrapper->EvalSumKeyGen();
     std::size_t slot_count = m_p_ctx_wrapper->getSlotCount();
     if (m_w_params.n > slot_count)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Vector size cannot be greater than " + std::to_string(slot_count) + "."),
                                          HEBENCH_ECODE_INVALID_ARGS);
 }
 
-DotProductBenchmark::~DotProductBenchmark()
+ElementWiseBenchmark::~ElementWiseBenchmark()
 {
     // nothing needed in this example
 }
 
-hebench::APIBridge::Handle DotProductBenchmark::encode(const hebench::APIBridge::PackedData *p_parameters)
+hebench::APIBridge::Handle ElementWiseBenchmark::encode(const hebench::APIBridge::PackedData *p_parameters)
 {
-    if (p_parameters->pack_count != DotProductBenchmarkDescription::NumOpParams)
+    if (p_parameters->pack_count != ElementWiseBenchmarkDescription::NumOpParams)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid number of parameters detected in parameter pack. Expected 2."),
                                          HEBENCH_ECODE_INVALID_ARGS);
-
-    // allocate our internal version of the encoded data
-
-    // We are using shared_ptr because we want to be able to copy the pointer object later
-    // and use the reference counter to avoid leaving dangling. If our internal object
-    // does not need to be copied, shared_ptr is not really needed.
 
     std::vector<std::vector<lbcrypto::Plaintext>> params;
 
@@ -162,7 +160,7 @@ hebench::APIBridge::Handle DotProductBenchmark::encode(const hebench::APIBridge:
         params[x].resize(p_parameters->p_data_packs[x].buffer_count);
     }
 
-    std::vector<double> values;
+    std::vector<int64_t> values;
     values.resize(m_w_params.n);
     for (unsigned int x = 0; x < params.size(); ++x)
     {
@@ -171,44 +169,45 @@ hebench::APIBridge::Handle DotProductBenchmark::encode(const hebench::APIBridge:
             const hebench::APIBridge::DataPack &parameter = p_parameters->p_data_packs[x];
             // take first sample from parameter (because latency test has a single sample per parameter)
             const hebench::APIBridge::NativeDataBuffer &sample = parameter.p_buffers[y];
-            // convert the native data to pointer to double as per specification of workload
-            const double *p_row = reinterpret_cast<const double *>(sample.p);
+            // convert the native data to pointer to int64_t as per specification of workload
+            const int64_t *p_row = reinterpret_cast<const int64_t *>(sample.p);
             for (unsigned int x = 0; x < m_w_params.n; ++x)
             {
                 values[x] = p_row[x];
             }
-            params[x][y] = m_p_ctx_wrapper->context()->MakeCKKSPackedPlaintext(values);
+            params[x][y] = m_p_ctx_wrapper->context()->MakePackedPlaintext(values);
         }
     }
+
     return this->getEngine().createHandle<decltype(params)>(sizeof(params),
                                                             0,
                                                             std::move(params));
 }
 
-void DotProductBenchmark::decode(hebench::APIBridge::Handle encoded_data, hebench::APIBridge::PackedData *p_native)
+void ElementWiseBenchmark::decode(hebench::APIBridge::Handle encoded_data, hebench::APIBridge::PackedData *p_native)
 {
     // retrieve our internal format object from the handle
     const std::vector<lbcrypto::Plaintext> &params =
         this->getEngine().retrieveFromHandle<std::vector<lbcrypto::Plaintext>>(encoded_data);
 
-    const size_t params_size = params.size();
-    for (size_t result_i = 0; result_i < params_size; ++result_i)
+    for (size_t result_i = 0; result_i < params.size(); ++result_i)
     {
-        double *output_location = reinterpret_cast<double *>(p_native->p_data_packs[0].p_buffers[result_i].p);
-        std::vector<double> result_vec;
-        result_vec         = params[result_i]->GetRealPackedValue();
-        output_location[0] = result_vec.front();
+        int64_t *output_location = reinterpret_cast<int64_t *>(p_native->p_data_packs[0].p_buffers[result_i].p);
+        std::vector<int64_t> result_vec;
+        result_vec = params[result_i]->GetPackedValue();
+        for (size_t x = 0; x < m_w_params.n; ++x)
+        {
+            output_location[x] = result_vec[x];
+        }
     }
 }
 
-hebench::APIBridge::Handle DotProductBenchmark::encrypt(hebench::APIBridge::Handle encoded_data)
+hebench::APIBridge::Handle ElementWiseBenchmark::encrypt(hebench::APIBridge::Handle encoded_data)
 {
-    // retrieve our internal format object from the handle
     const std::vector<std::vector<lbcrypto::Plaintext>> &encoded_data_ref =
         this->getEngine().retrieveFromHandle<std::vector<std::vector<lbcrypto::Plaintext>>>(encoded_data);
 
     std::vector<std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>> encrypted_data;
-
     encrypted_data.resize(encoded_data_ref.size());
     for (unsigned int param_i = 0; param_i < encoded_data_ref.size(); param_i++)
     {
@@ -224,19 +223,13 @@ hebench::APIBridge::Handle DotProductBenchmark::encrypt(hebench::APIBridge::Hand
                                                                     std::move(encrypted_data));
 }
 
-hebench::APIBridge::Handle DotProductBenchmark::decrypt(hebench::APIBridge::Handle encrypted_data)
+hebench::APIBridge::Handle ElementWiseBenchmark::decrypt(hebench::APIBridge::Handle encrypted_data)
 {
-    if ((encrypted_data.tag & hebench::cpp::EngineObject::tag) == 0)
-        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid tag detected. Expected EngineObject::tag."),
-                                         HEBENCH_ECODE_INVALID_ARGS);
-
-    // retrieve our internal format object from the handle
-    std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>> &encrypted_data_ref =
+    const std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>> &encrypted_data_ref =
         this->getEngine().retrieveFromHandle<std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>>(encrypted_data);
 
     std::vector<lbcrypto::Plaintext> plaintext_data;
     plaintext_data.resize(encrypted_data_ref.size());
-
     for (unsigned int res_count = 0; res_count < encrypted_data_ref.size(); ++res_count)
     {
         plaintext_data[res_count] = m_p_ctx_wrapper->decrypt(encrypted_data_ref[res_count]);
@@ -247,19 +240,22 @@ hebench::APIBridge::Handle DotProductBenchmark::decrypt(hebench::APIBridge::Hand
                                                                     std::move(plaintext_data));
 }
 
-hebench::APIBridge::Handle DotProductBenchmark::load(const hebench::APIBridge::Handle *p_local_data, uint64_t count)
+hebench::APIBridge::Handle ElementWiseBenchmark::load(const hebench::APIBridge::Handle *p_local_data, uint64_t count)
 {
-    assert(count == 0 || p_local_data);
     if (count != 1)
-        // we do all ops in plain text, so, we should get only one pack of data
+        // we do all ops in ciphertext, so, we should get only one pack of data
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid number of handles. Expected 1."),
                                          HEBENCH_ECODE_INVALID_ARGS);
+    assert(p_local_data);
+
+    // since remote and host are the same for this example, we just need to return a copy
+    // of the local data as remote.
 
     return this->getEngine().duplicateHandle(p_local_data[0]);
 }
 
-void DotProductBenchmark::store(hebench::APIBridge::Handle remote_data,
-                                hebench::APIBridge::Handle *p_local_data, std::uint64_t count)
+void ElementWiseBenchmark::store(hebench::APIBridge::Handle remote_data,
+                                 hebench::APIBridge::Handle *p_local_data, std::uint64_t count)
 {
     assert(count == 0 || p_local_data);
     if (count > 0)
@@ -273,17 +269,13 @@ void DotProductBenchmark::store(hebench::APIBridge::Handle remote_data,
     } // end if
 }
 
-hebench::APIBridge::Handle DotProductBenchmark::operate(hebench::APIBridge::Handle h_remote_packed,
-                                                        const hebench::APIBridge::ParameterIndexer *p_param_indexers)
+hebench::APIBridge::Handle ElementWiseBenchmark::operate(hebench::APIBridge::Handle h_remote_packed,
+                                                         const hebench::APIBridge::ParameterIndexer *p_param_indexers)
 {
-    // retrieve our internal format object from the handle
     const std::vector<std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>> &params =
         this->getEngine().retrieveFromHandle<std::vector<std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>>>(h_remote_packed);
 
-    // create a new internal object for result
     std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>> result;
-
-    // perform the actual operation
     result.resize(p_param_indexers[0].batch_size * p_param_indexers[1].batch_size);
     std::mutex mtx;
     std::exception_ptr p_ex;
@@ -296,11 +288,22 @@ hebench::APIBridge::Handle DotProductBenchmark::operate(hebench::APIBridge::Hand
             {
                 if (!p_ex)
                 {
-                    auto &result_cipher = result[result_i * p_param_indexers[1].batch_size + result_x];
-                    result_cipher       = m_p_ctx_wrapper->context()->EvalMultAndRelinearize(params[0][p_param_indexers[0].value_index + result_i],
-                                                                                       params[1][p_param_indexers[1].value_index + result_x]);
+                    const lbcrypto::Ciphertext<lbcrypto::DCRTPoly> &p0 = params[0][p_param_indexers[0].value_index + result_i];
+                    const lbcrypto::Ciphertext<lbcrypto::DCRTPoly> &p1 = params[1][p_param_indexers[1].value_index + result_x];
+                    lbcrypto::Ciphertext<lbcrypto::DCRTPoly> &r        = result[result_i * p_param_indexers[1].batch_size + result_x];
+                    switch (this->getDescriptor().workload)
+                    {
+                    case hebench::APIBridge::EltwiseAdd:
+                        r = p0 + p1;
+                        break;
+                    case hebench::APIBridge::EltwiseMultiply:
+                        r = m_p_ctx_wrapper->context()->EvalMultNoRelin(p0, p1);
+                        break;
 
-                    result_cipher = m_p_ctx_wrapper->context()->EvalSum(result_cipher, m_w_params.n);
+                    default:
+                        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Operation not implimented."),
+                                                         HEBENCH_ECODE_INVALID_ARGS);
+                    } // end switch
                 } // end if
             }
             catch (...)

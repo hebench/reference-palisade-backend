@@ -8,19 +8,19 @@
 #include "hebench/api_bridge/cpp/hebench.hpp"
 
 namespace pbe {
-namespace ckks {
+namespace bfv {
 
-class DotProductBenchmarkDescription : public hebench::cpp::BenchmarkDescription
+class ElementWiseBenchmarkDescription : public hebench::cpp::BenchmarkDescription
 {
 public:
-    HEBERROR_DECLARE_CLASS_NAME(ckks::DotProductBenchmarkDescription)
+    HEBERROR_DECLARE_CLASS_NAME(bfv::ElementWiseBenchmarkDescription)
     static constexpr const char *AlgorithmName        = "Vector";
     static constexpr const char *AlgorithmDescription = "One vector per ciphertext";
     static constexpr std::size_t NumOpParams          = 2;
 
-    static constexpr std::size_t DefaultPolyModulusDegree    = 16384; // 8192 doesn't work because of PALISADE hybrid mode
-    static constexpr std::size_t DefaultNumCoefficientModuli = 2;
-    static constexpr std::size_t DefaultScaleBits            = 40;
+    static constexpr std::size_t DefaultPolyModulusDegree   = 8192;
+    static constexpr std::size_t DefaultMultiplicativeDepth = 2;
+    static constexpr std::size_t DefaultCoeffModulusBits    = 40;
 
     enum : std::uint64_t
     {
@@ -29,13 +29,13 @@ public:
         Index_ExtraWParamsStart,
         Index_PolyModulusDegree = Index_ExtraWParamsStart,
         Index_NumCoefficientModuli,
-        Index_ScaleBits,
-        NumWorkloadParams // This workload requires 1 parameters, and we add 3 encryption params
+        Index_CoefficientModulusBits,
+        NumWorkloadParams // This workload requires 1 parameters, and we add 4 encryption params
     };
 
 public:
-    DotProductBenchmarkDescription(hebench::APIBridge::Category category);
-    ~DotProductBenchmarkDescription() override;
+    ElementWiseBenchmarkDescription(hebench::APIBridge::Category category, hebench::APIBridge::Workload op);
+    ~ElementWiseBenchmarkDescription() override;
 
     hebench::cpp::BaseBenchmark *createBenchmark(hebench::cpp::BaseEngine &engine,
                                                  const hebench::APIBridge::WorkloadParams *p_params) override;
@@ -43,18 +43,18 @@ public:
     std::string getBenchmarkDescription(const hebench::APIBridge::WorkloadParams *p_w_params) const override;
 };
 
-class DotProductBenchmark : public hebench::cpp::BaseBenchmark
+class ElementWiseBenchmark : public hebench::cpp::BaseBenchmark
 {
 public:
-    HEBERROR_DECLARE_CLASS_NAME(ckks::DotProductBenchmark)
+    HEBERROR_DECLARE_CLASS_NAME(bfv::ElementWiseBenchmark)
 
 public:
     static constexpr std::int64_t tag = 0x1;
 
-    DotProductBenchmark(hebench::cpp::BaseEngine &engine,
-                        const hebench::APIBridge::BenchmarkDescriptor &bench_desc,
-                        const hebench::APIBridge::WorkloadParams &bench_params);
-    ~DotProductBenchmark() override;
+    ElementWiseBenchmark(hebench::cpp::BaseEngine &engine,
+                         const hebench::APIBridge::BenchmarkDescriptor &bench_desc,
+                         const hebench::APIBridge::WorkloadParams &bench_params);
+    ~ElementWiseBenchmark() override;
 
     hebench::APIBridge::Handle encode(const hebench::APIBridge::PackedData *p_parameters) override;
     void decode(hebench::APIBridge::Handle encoded_data, hebench::APIBridge::PackedData *p_native) override;
@@ -68,11 +68,11 @@ public:
     hebench::APIBridge::Handle operate(hebench::APIBridge::Handle h_remote_packed,
                                        const hebench::APIBridge::ParameterIndexer *p_param_indexers) override;
 
-    std::int64_t classTag() const override { return BaseBenchmark::classTag() | DotProductBenchmark::tag; }
+    std::int64_t classTag() const override { return BaseBenchmark::classTag() | ElementWiseBenchmark::tag; }
 
 private:
     PalisadeContext::Ptr m_p_ctx_wrapper;
-    hebench::cpp::WorkloadParams::DotProduct m_w_params;
+    hebench::cpp::WorkloadParams::VectorSize m_w_params;
 };
-} // namespace ckks
+} // namespace bfv
 } // namespace pbe
