@@ -30,7 +30,7 @@ public:
         Index_PolyModulusDegree = Index_ExtraWParamsStart,
         Index_NumCoefficientModuli,
         Index_CoefficientModulusBits,
-        NumWorkloadParams // This workload requires 1 parameters, and we add 4 encryption params
+        NumWorkloadParams // This workload requires 1 parameters, and we add 3 encryption params
     };
 
 public:
