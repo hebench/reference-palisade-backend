@@ -288,7 +288,7 @@ hebench::APIBridge::Handle DotProductBenchmark::operate(hebench::APIBridge::Hand
                     result_cipher       = m_p_ctx_wrapper->context()->EvalMultAndRelinearize(params[0][p_param_indexers[0].value_index + result_i],
                                                                                        params[1][p_param_indexers[1].value_index + result_x]);
 
-                    result_cipher = m_p_ctx_wrapper->context()->EvalSum(result_cipher, m_w_params.n);
+                    result_cipher = m_p_ctx_wrapper->context()->EvalSum(result_cipher, m_p_ctx_wrapper->getSlotCount());
                 } // end if
             }
             catch (...)

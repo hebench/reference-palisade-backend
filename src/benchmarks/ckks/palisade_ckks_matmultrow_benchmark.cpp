@@ -364,7 +364,12 @@ void MatMultRowBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebe
                     if (decoded.empty())
                         std::copy(test.begin(), test.end(), p_data + (m_w_params.cols_M1 * row_i)); // p_data[m_w_params.cols_M1 * row_i] = test.data();
                     else
+                    {
+                        for (size_t i = 0; i < decoded.size(); i++)
+                            if (std::abs(decoded[i]) < 0.00005)
+                                decoded[i] = 0.0;
                         std::copy(decoded.begin(), decoded.end(), p_data + (m_w_params.cols_M1 * row_i)); //p_data[m_w_params.cols_M1 * row_i] = decoded.data();
+                    } // end if
                 } // end for
             } // end if
         } // end if

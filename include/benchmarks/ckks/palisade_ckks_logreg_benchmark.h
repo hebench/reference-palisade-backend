@@ -35,7 +35,7 @@ public:
     static constexpr const char *AlgorithmDescription = "using PALISADE EvalPoly";
 
     // HE specific parameters
-    static constexpr std::size_t DefaultPolyModulusDegree    = 16384; // 8192 doesn't work because of PALISADE hybrid mode
+    static constexpr std::size_t DefaultPolyModulusDegree    = 16384;
     static constexpr std::size_t DefaultNumCoefficientModuli = 5;
     static constexpr int DefaultScaleExponent                = 45;
 

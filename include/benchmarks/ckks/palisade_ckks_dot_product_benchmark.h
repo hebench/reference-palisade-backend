@@ -18,8 +18,8 @@ public:
     static constexpr const char *AlgorithmDescription = "One vector per ciphertext";
     static constexpr std::size_t NumOpParams          = 2;
 
-    static constexpr std::size_t DefaultPolyModulusDegree    = 16384; // 8192 doesn't work because of PALISADE hybrid mode
-    static constexpr std::size_t DefaultNumCoefficientModuli = 2;
+    static constexpr std::size_t DefaultPolyModulusDegree    = 8192;
+    static constexpr std::size_t DefaultNumCoefficientModuli = 1;
     static constexpr std::size_t DefaultScaleBits            = 40;
 
     enum : std::uint64_t

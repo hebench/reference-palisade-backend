@@ -204,7 +204,10 @@ void ElementWiseBenchmark::decode(hebench::APIBridge::Handle encoded_data, heben
         result_vec = params[result_i]->GetRealPackedValue();
         for (size_t x = 0; x < m_w_params.n; ++x)
         {
-            output_location[x] = result_vec[x];
+            if (std::abs(result_vec[x]) < 0.00005)
+                output_location[x] = 0.0;
+            else
+                output_location[x] = result_vec[x];
         }
     }
 }

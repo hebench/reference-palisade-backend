@@ -24,8 +24,8 @@ public:
     static constexpr std::uint64_t NumWorkloadParams = 4;
 
     // HE specific parameters
-    static constexpr std::size_t DefaultPolyModulusDegree    = 16384; // needed for HYBRID key switching technique
-    static constexpr std::size_t DefaultNumCoefficientModuli = 2;
+    static constexpr std::size_t DefaultPolyModulusDegree    = 8192;
+    static constexpr std::size_t DefaultNumCoefficientModuli = 1;
     static constexpr int DefaultScaleExponent                = 40;
 
     EltwiseAddPlainCipherBenchmarkDescription();
