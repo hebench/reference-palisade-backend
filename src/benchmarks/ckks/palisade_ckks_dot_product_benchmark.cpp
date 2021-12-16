@@ -196,8 +196,11 @@ void DotProductBenchmark::decode(hebench::APIBridge::Handle encoded_data, hebenc
     {
         double *output_location = reinterpret_cast<double *>(p_native->p_data_packs[0].p_buffers[result_i].p);
         std::vector<double> result_vec;
-        result_vec         = params[result_i]->GetRealPackedValue();
-        output_location[0] = result_vec.front();
+        result_vec = params[result_i]->GetRealPackedValue();
+        if (std::abs(result_vec.front()) < 0.00005)
+            output_location[0] = 0.0;
+        else
+            output_location[0] = result_vec.front();
     }
 }
 

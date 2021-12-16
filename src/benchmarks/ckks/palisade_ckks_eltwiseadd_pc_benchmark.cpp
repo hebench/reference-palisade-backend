@@ -225,6 +225,11 @@ void EltwiseAddPlainCipherBenchmark::decode(hebench::APIBridge::Handle h_encoded
                 std::vector<double> decoded;
                 //engine.context() decode(encoded_sample, decoded);
                 decoded = encoded_sample->GetRealPackedValue();
+
+                for (std::size_t i = 0; i < decoded.size(); i++)
+                    if (std::abs(decoded[i]) < 0.00005)
+                        decoded[i] = 0.0;
+
                 std::copy_n(decoded.begin(),
                             std::min(decoded.size(), native_sample.size / sizeof(double)),
                             reinterpret_cast<double *>(native_sample.p));

@@ -325,9 +325,10 @@ void MatMultEIPBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebe
                     {
                         std::vector<double> decoded =
                             encoded_result[row_i][col_i]->GetRealPackedValue();
-                        p_data[m_w_params.cols_M1 * row_i + col_i] = decoded.empty() ?
-                                                                         0.0 :
-                                                                         decoded.front();
+                        if (decoded.empty() || std::abs(decoded.front()) < 0.00005)
+                            p_data[m_w_params.cols_M1 * row_i + col_i] = 0.0;
+                        else
+                            p_data[m_w_params.cols_M1 * row_i + col_i] = decoded.front();
                     } // end for
                 } // end for
             } // end if
