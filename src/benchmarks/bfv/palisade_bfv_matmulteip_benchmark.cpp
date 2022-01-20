@@ -118,11 +118,11 @@ MatMultEIPBenchmark::MatMultEIPBenchmark(PalisadeEngine &engine,
     if (m_w_params.rows_M0 <= 0 || m_w_params.cols_M0 <= 0 || m_w_params.cols_M1 <= 0)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Matrix dimensions must be greater than 0."),
                                          HEBENCH_ECODE_INVALID_ARGS);
-    if (m_w_params.cols_M0 - 1 > pmd)
+    if (m_w_params.cols_M0 > pmd - 1)
     {
         std::stringstream ss;
         ss << "Invalid workload parameters. This workload only supports matrices of dimensions (n x "
-           << (pmd) << ") x (" << (pmd) << " x m).";
+           << (pmd - 1) << ") x (" << (pmd - 1) << " x m).";
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()),
                                          HEBENCH_ECODE_INVALID_ARGS);
     } // end if
@@ -223,7 +223,7 @@ MatMultEIPBenchmark::doMatMultEIP(const std::vector<lbcrypto::Ciphertext<lbcrypt
             try
             {
                 if (!p_ex)
-                    retval[i][j] = m_p_context->context()->EvalInnerProduct(M0[i], M1_T[j], m_w_params.cols_M0);
+                    retval[i][j] = m_p_context->context()->EvalInnerProduct(M0[i], M1_T[j], m_p_context->getSlotCount());
             }
             catch (...)
             {

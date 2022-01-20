@@ -121,11 +121,11 @@ MatMultRowBenchmark::MatMultRowBenchmark(PalisadeEngine &engine,
     if (m_w_params.rows_M0 <= 0 || m_w_params.cols_M0 <= 0 || m_w_params.cols_M1 <= 0)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Matrix dimensions must be greater than 0."),
                                          HEBENCH_ECODE_INVALID_ARGS);
-    if (m_w_params.cols_M0 - 1 > pmd)
+
+    if (m_w_params.cols_M0 > (pmd / 2) || m_w_params.cols_M0 * m_w_params.cols_M1 > (pmd / 2))
     {
         std::stringstream ss;
-        ss << "Invalid workload parameters. This workload only supports matrices of dimensions (n x "
-           << (pmd) << ") x (" << (pmd) << " x m).";
+        ss << "Invalid workload parameters. This workload only supports matrices of dimensions (a x b) x (b x c) where 'b' and b * c is at max " << (pmd / 2) << " (e.g. PolyModulusDegree / 2).";
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()),
                                          HEBENCH_ECODE_INVALID_ARGS);
     } // end if

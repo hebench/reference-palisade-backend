@@ -118,14 +118,6 @@ MatMultCipherBatchAxisBenchmark::MatMultCipherBatchAxisBenchmark(PalisadeEngine 
     if (m_w_params.rows_M0 <= 0 || m_w_params.cols_M0 <= 0 || m_w_params.cols_M1 <= 0)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Matrix dimensions must be greater than 0."),
                                          HEBENCH_ECODE_INVALID_ARGS);
-    if (m_w_params.cols_M0 - 1 > pmd)
-    {
-        std::stringstream ss;
-        ss << "Invalid workload parameters. This workload only supports matrices of dimensions (n x "
-           << (pmd) << ") x (" << (pmd) << " x m).";
-        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()),
-                                         HEBENCH_ECODE_INVALID_ARGS);
-    } // end if
 
     m_p_context = PalisadeContext::createBFVContext(pmd, mult_depth, coeff_bits, lbcrypto::HEStd_128_classic);
     m_p_context->EvalMultKeyGen();
