@@ -22,6 +22,9 @@ public:
     static constexpr std::size_t DefaultNumCoefficientModuli = 1;
     static constexpr std::size_t DefaultScaleBits            = 40;
 
+    // other workload parameters
+    static constexpr std::size_t DefaultNumThreads = 0; // 0 - use all available threads
+
     enum : std::uint64_t
     {
         Index_WParamsStart = 0,
@@ -30,6 +33,7 @@ public:
         Index_PolyModulusDegree = Index_ExtraWParamsStart,
         Index_NumCoefficientModuli,
         Index_ScaleExponentBits,
+        Index_NumThreads,
         NumWorkloadParams // This workload requires 1 parameters, and we add 3 encryption params
     };
 
@@ -73,6 +77,7 @@ public:
 private:
     PalisadeContext::Ptr m_p_ctx_wrapper;
     hebench::cpp::WorkloadParams::VectorSize m_w_params;
+    int m_num_threads;
 };
 
 } // namespace ckks

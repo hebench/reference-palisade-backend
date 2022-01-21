@@ -49,7 +49,8 @@ MatMultRowBenchmarkDescription::MatMultRowBenchmarkDescription()
     default_workload_params.add<std::uint64_t>(MatMultRowBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
     default_workload_params.add<std::uint64_t>(MatMultRowBenchmarkDescription::DefaultNumCoefficientModuli, "MultiplicativeDepth");
     default_workload_params.add<std::uint64_t>(MatMultRowBenchmarkDescription::DefaultCoefficientModuliBits, "CoefficientModuliBits");
-    // total: 6 workload params
+    default_workload_params.add<std::uint64_t>(MatMultRowBenchmarkDescription::DefaultNumThreads, "NumThreads");
+    // total: 7 workload params
     this->addDefaultParameters(default_workload_params);
 }
 
@@ -62,17 +63,28 @@ std::string MatMultRowBenchmarkDescription::getBenchmarkDescription(const hebenc
 {
     assert(p_w_params->count >= MatMultRowBenchmarkDescription::NumWorkloadParams);
 
-    std::size_t pmd        = p_w_params->params[Index_PolyModulusDegree].u_param;
-    std::size_t mult_depth = p_w_params->params[Index_NumCoefficientModuli].u_param;
-    std::size_t coeff_bits = p_w_params->params[Index_CoefficientModuliBits].u_param;
-
     std::stringstream ss;
+    std::string s_tmp = BenchmarkDescription::getBenchmarkDescription(p_w_params);
+    if (!p_w_params)
+        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid null workload parameters `p_w_params`"),
+                                         HEBENCH_ECODE_INVALID_ARGS);
+
+    std::size_t pmd           = p_w_params->params[Index_PolyModulusDegree].u_param;
+    std::size_t mult_depth    = p_w_params->params[Index_NumCoefficientModuli].u_param;
+    std::size_t coeff_bits    = p_w_params->params[Index_CoefficientModuliBits].u_param;
+    std::uint64_t num_threads = p_w_params->params[MatMultRowBenchmarkDescription::Index_NumThreads].u_param;
+
+    if (num_threads <= 0)
+        num_threads = omp_get_max_threads();
+    if (!s_tmp.empty())
+        ss << s_tmp << std::endl;
     ss << ", Encryption parameters" << std::endl
        << ", , HE Library, PALISADE 1.11.3" << std::endl
        << ", , Poly modulus degree, " << pmd << std::endl
        << ", , Multiplicative Depth, " << mult_depth << std::endl
        << ", , Coefficient moduli bits, " << coeff_bits << std::endl
-       << ", Algorithm, " << AlgorithmName << ", " << AlgorithmDescription;
+       << ", Algorithm, " << AlgorithmName << ", " << AlgorithmDescription << std::endl
+       << ", Number of threads, " << num_threads;
     return ss.str();
 }
 
@@ -114,6 +126,9 @@ MatMultRowBenchmark::MatMultRowBenchmark(PalisadeEngine &engine,
     std::size_t pmd        = m_w_params.get<std::uint64_t>(MatMultRowBenchmarkDescription::Index_PolyModulusDegree);
     std::size_t mult_depth = m_w_params.get<std::uint64_t>(MatMultRowBenchmarkDescription::Index_NumCoefficientModuli);
     std::size_t coeff_bits = m_w_params.get<std::uint64_t>(MatMultRowBenchmarkDescription::Index_CoefficientModuliBits);
+    m_num_threads          = static_cast<int>(m_w_params.get<std::uint64_t>(MatMultRowBenchmarkDescription::Index_NumThreads));
+    if (m_num_threads <= 0)
+        m_num_threads = omp_get_max_threads();
 
     // check values of the workload parameters and make sure they are supported by benchmark:
 
@@ -239,7 +254,7 @@ MatMultRowBenchmark::doMatMultRow(const std::vector<lbcrypto::Ciphertext<lbcrypt
     lbcrypto::Ciphertext<lbcrypto::DCRTPoly> cipher_zero = m_p_context->context()->Encrypt(m_p_context->publicKey(), plain_zero);
     plain_zero.reset();
 
-    int num_threads = omp_get_max_threads();
+    int num_threads = m_num_threads;
     int threads_at_level[2];
     threads_at_level[0] = static_cast<int>(M0.size());
     if (threads_at_level[0] > num_threads)
