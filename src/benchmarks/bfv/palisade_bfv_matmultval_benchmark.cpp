@@ -241,7 +241,7 @@ MatMultValBenchmark::doMatMultVal(const std::vector<lbcrypto::Ciphertext<lbcrypt
             {
                 if (!p_ex)
                     retval[i][j] =
-                        m_p_context->context()->EvalSum(m_p_context->context()->EvalMult(M0[i], M1_T[j]), m_p_context->getSlotCount());
+                        m_p_context->context()->EvalSum(m_p_context->context()->EvalMult(M0[i], M1_T[j]), pow(2, ceil(log2(m_w_params.cols_M0))));
             }
             catch (...)
             {

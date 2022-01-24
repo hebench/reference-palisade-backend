@@ -241,7 +241,7 @@ MatMultEIPBenchmark::doMatMultEIP(const std::vector<lbcrypto::Ciphertext<lbcrypt
             try
             {
                 if (!p_ex)
-                    retval[i][j] = m_p_context->context()->EvalInnerProduct(M0[i], M1_T[j], m_p_context->getSlotCount());
+                    retval[i][j] = m_p_context->context()->EvalInnerProduct(M0[i], M1_T[j], pow(2, ceil(log2(m_w_params.cols_M0))));
             }
             catch (...)
             {
