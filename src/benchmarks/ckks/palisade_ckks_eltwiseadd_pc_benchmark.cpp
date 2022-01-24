@@ -114,13 +114,11 @@ EltwiseAddPlainCipherBenchmark::EltwiseAddPlainCipherBenchmark(PalisadeEngine &e
     hebench::cpp::WorkloadParams::EltwiseAdd w_params(bench_params);
 
     if (w_params.n <= 0
-        || w_params.n - 1 > pmd / 2)
+        || w_params.n > pmd / 2)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid workload parameters. This workload only supports vectors up to size " + std::to_string(pmd / 2) + "."),
                                          HEBENCH_ECODE_INVALID_ARGS);
 
     m_p_context = PalisadeContext::createCKKSContext(pmd, mult_depth, scale_bits, w_params.n);
-    //    m_p_context->printContextInfo(std::cout);
-    //    std::cout << std::endl;
 }
 
 EltwiseAddPlainCipherBenchmark::~EltwiseAddPlainCipherBenchmark()

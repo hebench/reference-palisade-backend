@@ -60,6 +60,7 @@ LogRegBenchmarkDescription::LogRegBenchmarkDescription(hebench::APIBridge::Categ
     default_workload_params.add<std::uint64_t>(LogRegBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
     default_workload_params.add<std::uint64_t>(LogRegBenchmarkDescription::DefaultNumCoefficientModuli, "MultiplicativeDepth");
     default_workload_params.add<std::uint64_t>(LogRegBenchmarkDescription::DefaultScaleExponent, "ScaleBits");
+    default_workload_params.add<std::uint64_t>(LogRegBenchmarkDescription::DefaultNumThreads, "NumThreads");
     this->addDefaultParameters(default_workload_params);
 }
 
@@ -72,18 +73,27 @@ std::string LogRegBenchmarkDescription::getBenchmarkDescription(const hebench::A
 {
     assert(p_w_params->count >= LogRegBenchmarkDescription::NumWorkloadParams);
 
-    std::size_t pmd        = p_w_params->params[Index_PolyModulusDegree].u_param;
-    std::size_t mult_depth = p_w_params->params[Index_NumCoefficientModuli].u_param;
-    std::size_t scale_bits = p_w_params->params[Index_ScaleExponent].u_param;
-
     std::stringstream ss;
+    std::string s_tmp = BenchmarkDescription::getBenchmarkDescription(p_w_params);
+    if (!p_w_params)
+        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid null workload parameters `p_w_params`"),
+                                         HEBENCH_ECODE_INVALID_ARGS);
+
+    std::size_t pmd           = p_w_params->params[Index_PolyModulusDegree].u_param;
+    std::size_t mult_depth    = p_w_params->params[Index_NumCoefficientModuli].u_param;
+    std::size_t scale_bits    = p_w_params->params[Index_ScaleExponent].u_param;
+    std::uint64_t num_threads = p_w_params->params[Index_NumThreads].u_param;
+    if (num_threads <= 0)
+        num_threads = omp_get_max_threads();
+
     ss << ", Encryption parameters" << std::endl
        << ", , HE Library, PALISADE 1.11.3" << std::endl
        << ", , Key-switching technique, PALISADE Hybrid" << std::endl
        << ", , Poly modulus degree, " << pmd << std::endl
        << ", , Multiplicative Depth, " << mult_depth << std::endl
        << ", , Scale, 2^" << scale_bits << std::endl
-       << ", Algorithm, " << AlgorithmName << ", " << AlgorithmDescription;
+       << ", Algorithm, " << AlgorithmName << ", " << AlgorithmDescription << std::endl
+       << ", Number of threads, " << num_threads;
     return ss.str();
 }
 
@@ -139,6 +149,9 @@ LogRegBenchmark::LogRegBenchmark(PalisadeEngine &engine,
     std::size_t pmd        = m_w_params.get<std::uint64_t>(LogRegBenchmarkDescription::Index_PolyModulusDegree);
     std::size_t mult_depth = m_w_params.get<std::uint64_t>(LogRegBenchmarkDescription::Index_NumCoefficientModuli);
     std::size_t scale_bits = m_w_params.get<std::uint64_t>(LogRegBenchmarkDescription::Index_ScaleExponent);
+    m_num_threads          = static_cast<int>(m_w_params.get<std::uint64_t>(LogRegBenchmarkDescription::Index_NumThreads));
+    if (m_num_threads <= 0)
+        m_num_threads = omp_get_max_threads();
 
     // check values of the workload parameters and make sure they are supported by benchmark:
 
@@ -304,7 +317,7 @@ std::vector<double> LogRegBenchmark::decodeResult(const std::vector<lbcrypto::Pl
     }
 
     retval.resize(n_samples);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(m_num_threads)
     for (std::size_t i = 0; i < retval.size(); ++i)
         if (std::abs(retval[i]) < 0.00005)
             retval[i] = 0;
@@ -517,7 +530,7 @@ hebench::APIBridge::Handle LogRegBenchmark::operate(hebench::APIBridge::Handle h
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid indexer range for parameter " + std::to_string(LogRegBenchmarkDescription::Index_X) + " detected."),
                                          HEBENCH_ECODE_INVALID_ARGS);
 
-    const int max_threads           = omp_get_max_threads();
+    const int max_threads           = m_num_threads;
     const int old_dyn_adjustment    = omp_get_dynamic();
     const int old_max_active_levels = omp_get_max_active_levels();
     const int old_nested_value      = omp_get_nested();
