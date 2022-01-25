@@ -30,6 +30,9 @@ public:
     static constexpr std::size_t DefaultNumCoefficientModuli = 2;
     static constexpr int DefaultCoefficientModuliBits        = 40;
 
+    // other workload parameters
+    static constexpr std::size_t DefaultNumThreads = 0; // 0 - use all available threads
+
     enum : std::uint64_t
     {
         Index_WParamsStart = 0,
@@ -40,6 +43,7 @@ public:
         Index_PolyModulusDegree = Index_ExtraWParamsStart,
         Index_NumCoefficientModuli,
         Index_CoefficientModuliBits,
+        Index_NumThreads,
         NumWorkloadParams // This workload requires 3 parameters, and we add 3 encryption params
     };
 
@@ -120,6 +124,7 @@ private:
 
     PalisadeContext::Ptr m_p_context;
     hebench::cpp::WorkloadParams::MatrixMultiply m_w_params;
+    int m_num_threads;
 };
 
 } // namespace bfv

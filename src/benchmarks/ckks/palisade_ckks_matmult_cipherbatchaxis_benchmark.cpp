@@ -47,7 +47,8 @@ MatMultCipherBatchAxisBenchmarkDescription::MatMultCipherBatchAxisBenchmarkDescr
     default_workload_params.add<std::uint64_t>(MatMultCipherBatchAxisBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
     default_workload_params.add<std::uint64_t>(MatMultCipherBatchAxisBenchmarkDescription::DefaultNumCoefficientModuli, "MultiplicativeDepth");
     default_workload_params.add<std::uint64_t>(MatMultCipherBatchAxisBenchmarkDescription::DefaultScaleExponent, "ScaleBits");
-    // total: 6 workload params
+    default_workload_params.add<std::uint64_t>(MatMultCipherBatchAxisBenchmarkDescription::DefaultNumThreads, "NumThreads");
+    // total: 7 workload params
     this->addDefaultParameters(default_workload_params);
 }
 
@@ -59,19 +60,29 @@ MatMultCipherBatchAxisBenchmarkDescription::~MatMultCipherBatchAxisBenchmarkDesc
 std::string MatMultCipherBatchAxisBenchmarkDescription::getBenchmarkDescription(const hebench::APIBridge::WorkloadParams *p_w_params) const
 {
     assert(p_w_params->count >= MatMultCipherBatchAxisBenchmarkDescription::NumWorkloadParams);
-
-    std::size_t pmd        = p_w_params->params[Index_PolyModulusDegree].u_param;
-    std::size_t mult_depth = p_w_params->params[Index_NumCoefficientModuli].u_param;
-    std::size_t scale_bits = p_w_params->params[Index_ScaleExponent].u_param;
-
     std::stringstream ss;
+    std::string s_tmp = BenchmarkDescription::getBenchmarkDescription(p_w_params);
+    if (!p_w_params)
+        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid null workload parameters `p_w_params`"),
+                                         HEBENCH_ECODE_INVALID_ARGS);
+
+    std::size_t pmd           = p_w_params->params[Index_PolyModulusDegree].u_param;
+    std::size_t mult_depth    = p_w_params->params[Index_NumCoefficientModuli].u_param;
+    std::size_t scale_bits    = p_w_params->params[Index_ScaleExponent].u_param;
+    std::uint64_t num_threads = p_w_params->params[MatMultCipherBatchAxisBenchmarkDescription::Index_NumThreads].u_param;
+
+    if (num_threads <= 0)
+        num_threads = omp_get_max_threads();
+    if (!s_tmp.empty())
+        ss << s_tmp << std::endl;
     ss << ", Encryption parameters" << std::endl
        << ", , HE Library, PALISADE 1.11.3" << std::endl
        << ", , Key-switching technique, PALISADE Hybrid" << std::endl
        << ", , Poly modulus degree, " << pmd << std::endl
        << ", , Multiplicative Depth, " << mult_depth << std::endl
        << ", , Scale, 2^" << scale_bits << std::endl
-       << ", Algorithm, " << AlgorithmName << ", " << AlgorithmDescription;
+       << ", Algorithm, " << AlgorithmName << ", " << AlgorithmDescription << std::endl
+       << ", Number of threads, " << num_threads;
     return ss.str();
 }
 
@@ -113,13 +124,16 @@ MatMultCipherBatchAxisBenchmark::MatMultCipherBatchAxisBenchmark(PalisadeEngine 
     std::size_t pmd        = m_w_params.get<std::uint64_t>(MatMultCipherBatchAxisBenchmarkDescription::Index_PolyModulusDegree);
     std::size_t mult_depth = m_w_params.get<std::uint64_t>(MatMultCipherBatchAxisBenchmarkDescription::Index_NumCoefficientModuli);
     std::size_t scale_bits = m_w_params.get<std::uint64_t>(MatMultCipherBatchAxisBenchmarkDescription::Index_ScaleExponent);
+    m_num_threads          = static_cast<int>(m_w_params.get<std::uint64_t>(MatMultCipherBatchAxisBenchmarkDescription::Index_NumThreads));
+    if (m_num_threads <= 0)
+        m_num_threads = omp_get_max_threads();
 
     // check values of the workload parameters and make sure they are supported by benchmark:
 
     if (m_w_params.rows_M0 <= 0 || m_w_params.cols_M0 <= 0 || m_w_params.cols_M1 <= 0)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Matrix dimensions must be greater than 0."),
                                          HEBENCH_ECODE_INVALID_ARGS);
-    if (m_w_params.cols_M0 - 1 > pmd / 2)
+    if (m_w_params.cols_M0 > pmd / 2)
     {
         std::stringstream ss;
         ss << "Invalid workload parameters. This workload only supports matrices of dimensions (n x "
@@ -128,12 +142,8 @@ MatMultCipherBatchAxisBenchmark::MatMultCipherBatchAxisBenchmark(PalisadeEngine 
                                          HEBENCH_ECODE_INVALID_ARGS);
     } // end if
 
-    //    std::vector<int32_t> vec(m_w_params.cols_M0);
-    //    std::iota(std::begin(vec), std::end(vec), 1);
     m_p_context = PalisadeContext::createCKKSContext(pmd, mult_depth, scale_bits, lbcrypto::HEStd_128_classic, m_w_params.cols_M0);
     m_p_context->EvalMultKeyGen();
-    //    m_p_context->EvalAtIndexKeyGen(vec);
-    //    m_p_context->EvalSumKeyGen();
 }
 
 MatMultCipherBatchAxisBenchmark::~MatMultCipherBatchAxisBenchmark()
@@ -357,8 +367,8 @@ hebench::APIBridge::Handle MatMultCipherBatchAxisBenchmark::operate(hebench::API
     int th_lvl             = m0.rows() * m1.cols();
     if (th_lvl <= 0)
         th_lvl = 1;
-    else if (th_lvl > omp_get_max_threads())
-        th_lvl = omp_get_max_threads();
+    else if (th_lvl > m_num_threads)
+        th_lvl = m_num_threads;
 
     std::exception_ptr p_ex;
     std::mutex mtx_ex;
@@ -398,7 +408,7 @@ hebench::APIBridge::Handle MatMultCipherBatchAxisBenchmark::operate(hebench::API
 
     p_ex = nullptr;
 
-#pragma omp parallel for
+#pragma omp parallel for num_threads(m_num_threads)
     for (size_t out_idx = 0; out_idx < m.size(); ++out_idx)
     {
         try

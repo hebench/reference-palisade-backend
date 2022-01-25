@@ -39,6 +39,9 @@ public:
     static constexpr std::size_t DefaultNumCoefficientModuli = 5;
     static constexpr int DefaultScaleExponent                = 45;
 
+    // other workload parameters
+    static constexpr std::size_t DefaultNumThreads = 0; // 0 - use all available threads
+
     enum : std::uint64_t
     {
         Index_WParamsStart = 0,
@@ -47,6 +50,7 @@ public:
         Index_PolyModulusDegree = Index_ExtraWParamsStart,
         Index_NumCoefficientModuli,
         Index_ScaleExponent,
+        Index_NumThreads,
         NumWorkloadParams
     };
 
@@ -123,6 +127,7 @@ private:
     std::uint64_t m_sample_size;
     PalisadeContext::Ptr m_p_context;
     hebench::cpp::WorkloadParams::LogisticRegression m_w_params;
+    int m_num_threads;
 };
 
 } // namespace ckks

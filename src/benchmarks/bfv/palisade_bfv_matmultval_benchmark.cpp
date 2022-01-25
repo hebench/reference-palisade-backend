@@ -12,6 +12,8 @@
 #include <numeric>
 #include <vector>
 
+#include <omp.h>
+
 #include "benchmarks/bfv/palisade_bfv_matmultval_benchmark.h"
 #include "engine/palisade_engine.h"
 #include "engine/palisade_error.h"
@@ -47,7 +49,8 @@ MatMultValBenchmarkDescription::MatMultValBenchmarkDescription()
     default_workload_params.add<std::uint64_t>(MatMultValBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
     default_workload_params.add<std::uint64_t>(MatMultValBenchmarkDescription::DefaultNumCoefficientModuli, "MultiplicativeDepth");
     default_workload_params.add<std::uint64_t>(MatMultValBenchmarkDescription::DefaultCoefficientModuliBits, "CoefficientModuliBits");
-    // total: 6 workload params
+    default_workload_params.add<std::uint64_t>(MatMultValBenchmarkDescription::DefaultNumThreads, "NumThreads");
+    // total: 7 workload params
     this->addDefaultParameters(default_workload_params);
 }
 
@@ -60,17 +63,28 @@ std::string MatMultValBenchmarkDescription::getBenchmarkDescription(const hebenc
 {
     assert(p_w_params->count >= MatMultValBenchmarkDescription::NumWorkloadParams);
 
-    std::size_t pmd        = p_w_params->params[Index_PolyModulusDegree].u_param;
-    std::size_t mult_depth = p_w_params->params[Index_NumCoefficientModuli].u_param;
-    std::size_t coeff_bits = p_w_params->params[Index_CoefficientModuliBits].u_param;
-
     std::stringstream ss;
+    std::string s_tmp = BenchmarkDescription::getBenchmarkDescription(p_w_params);
+    if (!p_w_params)
+        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid null workload parameters `p_w_params`"),
+                                         HEBENCH_ECODE_INVALID_ARGS);
+
+    std::size_t pmd           = p_w_params->params[Index_PolyModulusDegree].u_param;
+    std::size_t mult_depth    = p_w_params->params[Index_NumCoefficientModuli].u_param;
+    std::size_t coeff_bits    = p_w_params->params[Index_CoefficientModuliBits].u_param;
+    std::uint64_t num_threads = p_w_params->params[MatMultValBenchmarkDescription::Index_NumThreads].u_param;
+
+    if (num_threads <= 0)
+        num_threads = omp_get_max_threads();
+    if (!s_tmp.empty())
+        ss << s_tmp << std::endl;
     ss << ", Encryption parameters" << std::endl
        << ", , HE Library, PALISADE 1.11.3" << std::endl
        << ", , Poly modulus degree, " << pmd << std::endl
        << ", , Multiplicative Depth, " << mult_depth << std::endl
        << ", , Coefficient moduli bits, " << coeff_bits << std::endl
-       << ", Algorithm, " << AlgorithmName << ", " << AlgorithmDescription;
+       << ", Algorithm, " << AlgorithmName << ", " << AlgorithmDescription << std::endl
+       << ", Number of threads, " << num_threads;
     return ss.str();
 }
 
@@ -112,17 +126,20 @@ MatMultValBenchmark::MatMultValBenchmark(PalisadeEngine &engine,
     std::size_t pmd        = m_w_params.get<std::uint64_t>(MatMultValBenchmarkDescription::Index_PolyModulusDegree);
     std::size_t mult_depth = m_w_params.get<std::uint64_t>(MatMultValBenchmarkDescription::Index_NumCoefficientModuli);
     std::size_t coeff_bits = m_w_params.get<std::uint64_t>(MatMultValBenchmarkDescription::Index_CoefficientModuliBits);
+    m_num_threads          = static_cast<int>(m_w_params.get<std::uint64_t>(MatMultValBenchmarkDescription::Index_NumThreads));
+    if (m_num_threads <= 0)
+        m_num_threads = omp_get_max_threads();
 
     // check values of the workload parameters and make sure they are supported by benchmark:
 
     if (m_w_params.rows_M0 <= 0 || m_w_params.cols_M0 <= 0 || m_w_params.cols_M1 <= 0)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Matrix dimensions must be greater than 0."),
                                          HEBENCH_ECODE_INVALID_ARGS);
-    if (m_w_params.cols_M0 - 1 > pmd)
+    if (m_w_params.cols_M0 > pmd - 1)
     {
         std::stringstream ss;
         ss << "Invalid workload parameters. This workload only supports matrices of dimensions (n x "
-           << (pmd) << ") x (" << (pmd) << " x m).";
+           << (pmd - 1) << ") x (" << (pmd - 1) << " x m).";
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()),
                                          HEBENCH_ECODE_INVALID_ARGS);
     } // end if
@@ -215,7 +232,7 @@ MatMultValBenchmark::doMatMultVal(const std::vector<lbcrypto::Ciphertext<lbcrypt
 
     std::exception_ptr p_ex;
     std::mutex mtx_ex;
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2) num_threads(m_num_threads)
     for (size_t i = 0; i < m_w_params.rows_M0; ++i)
     {
         for (size_t j = 0; j < m_w_params.cols_M1; ++j)
@@ -224,7 +241,7 @@ MatMultValBenchmark::doMatMultVal(const std::vector<lbcrypto::Ciphertext<lbcrypt
             {
                 if (!p_ex)
                     retval[i][j] =
-                        m_p_context->context()->EvalSum(m_p_context->context()->EvalMult(M0[i], M1_T[j]), m_w_params.cols_M0);
+                        m_p_context->context()->EvalSum(m_p_context->context()->EvalMult(M0[i], M1_T[j]), pow(2, ceil(log2(m_w_params.cols_M0))));
             }
             catch (...)
             {

@@ -12,6 +12,8 @@
 #include <numeric>
 #include <vector>
 
+#include <omp.h>
+
 #include "benchmarks/ckks/palisade_ckks_matmulteip_benchmark.h"
 #include "engine/palisade_engine.h"
 #include "engine/palisade_error.h"
@@ -47,7 +49,8 @@ MatMultEIPBenchmarkDescription::MatMultEIPBenchmarkDescription()
     default_workload_params.add<std::uint64_t>(MatMultEIPBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
     default_workload_params.add<std::uint64_t>(MatMultEIPBenchmarkDescription::DefaultNumCoefficientModuli, "MultiplicativeDepth");
     default_workload_params.add<std::uint64_t>(MatMultEIPBenchmarkDescription::DefaultScaleExponent, "ScaleBits");
-    // total: 6 workload params
+    default_workload_params.add<std::uint64_t>(MatMultEIPBenchmarkDescription::DefaultNumThreads, "NumThreads");
+    // total: 7 workload params
     this->addDefaultParameters(default_workload_params);
 }
 
@@ -60,18 +63,30 @@ std::string MatMultEIPBenchmarkDescription::getBenchmarkDescription(const hebenc
 {
     assert(p_w_params->count >= MatMultEIPBenchmarkDescription::NumWorkloadParams);
 
-    std::size_t pmd        = p_w_params->params[Index_PolyModulusDegree].u_param;
-    std::size_t mult_depth = p_w_params->params[Index_NumCoefficientModuli].u_param;
-    std::size_t scale_bits = p_w_params->params[Index_ScaleExponent].u_param;
-
     std::stringstream ss;
+    std::string s_tmp = BenchmarkDescription::getBenchmarkDescription(p_w_params);
+
+    if (!p_w_params)
+        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid null workload parameters `p_w_params`"),
+                                         HEBENCH_ECODE_INVALID_ARGS);
+
+    std::size_t pmd           = p_w_params->params[Index_PolyModulusDegree].u_param;
+    std::size_t mult_depth    = p_w_params->params[Index_NumCoefficientModuli].u_param;
+    std::size_t scale_bits    = p_w_params->params[Index_ScaleExponent].u_param;
+    std::uint64_t num_threads = p_w_params->params[MatMultEIPBenchmarkDescription::Index_NumThreads].u_param;
+
+    if (num_threads <= 0)
+        num_threads = omp_get_max_threads();
+    if (!s_tmp.empty())
+        ss << s_tmp << std::endl;
     ss << ", Encryption parameters" << std::endl
        << ", , HE Library, PALISADE 1.11.3" << std::endl
        << ", , Key-switching technique, PALISADE Hybrid" << std::endl
        << ", , Poly modulus degree, " << pmd << std::endl
        << ", , Multiplicative Depth, " << mult_depth << std::endl
        << ", , Scale, 2^" << scale_bits << std::endl
-       << ", Algorithm, " << AlgorithmName << ", " << AlgorithmDescription;
+       << ", Algorithm, " << AlgorithmName << ", " << AlgorithmDescription << std::endl
+       << ", Number of threads, " << num_threads;
     return ss.str();
 }
 
@@ -113,13 +128,16 @@ MatMultEIPBenchmark::MatMultEIPBenchmark(PalisadeEngine &engine,
     std::size_t pmd        = m_w_params.get<std::uint64_t>(MatMultEIPBenchmarkDescription::Index_PolyModulusDegree);
     std::size_t mult_depth = m_w_params.get<std::uint64_t>(MatMultEIPBenchmarkDescription::Index_NumCoefficientModuli);
     std::size_t scale_bits = m_w_params.get<std::uint64_t>(MatMultEIPBenchmarkDescription::Index_ScaleExponent);
+    m_num_threads          = static_cast<int>(m_w_params.get<std::uint64_t>(MatMultEIPBenchmarkDescription::Index_NumThreads));
+    if (m_num_threads <= 0)
+        m_num_threads = omp_get_max_threads();
 
     // check values of the workload parameters and make sure they are supported by benchmark:
 
     if (m_w_params.rows_M0 <= 0 || m_w_params.cols_M0 <= 0 || m_w_params.cols_M1 <= 0)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Matrix dimensions must be greater than 0."),
                                          HEBENCH_ECODE_INVALID_ARGS);
-    if (m_w_params.cols_M0 - 1 > pmd / 2)
+    if (m_w_params.cols_M0 > pmd / 2)
     {
         std::stringstream ss;
         ss << "Invalid workload parameters. This workload only supports matrices of dimensions (n x "
@@ -216,7 +234,7 @@ MatMultEIPBenchmark::doMatMultEIP(const std::vector<lbcrypto::Ciphertext<lbcrypt
 
     std::exception_ptr p_ex;
     std::mutex mtx_ex;
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2) num_threads(m_num_threads)
     for (size_t i = 0; i < m_w_params.rows_M0; ++i)
     {
         for (size_t j = 0; j < m_w_params.cols_M1; ++j)
