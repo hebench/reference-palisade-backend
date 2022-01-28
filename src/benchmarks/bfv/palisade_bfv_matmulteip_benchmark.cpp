@@ -61,14 +61,14 @@ MatMultEIPBenchmarkDescription::~MatMultEIPBenchmarkDescription()
 
 std::string MatMultEIPBenchmarkDescription::getBenchmarkDescription(const hebench::APIBridge::WorkloadParams *p_w_params) const
 {
-    assert(p_w_params->count >= MatMultEIPBenchmarkDescription::NumWorkloadParams);
-
     std::stringstream ss;
     std::string s_tmp = BenchmarkDescription::getBenchmarkDescription(p_w_params);
 
     if (!p_w_params)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid null workload parameters `p_w_params`"),
                                          HEBENCH_ECODE_INVALID_ARGS);
+
+    assert(p_w_params->count >= MatMultEIPBenchmarkDescription::NumWorkloadParams);
 
     std::size_t pmd           = p_w_params->params[Index_PolyModulusDegree].u_param;
     std::size_t mult_depth    = p_w_params->params[Index_NumCoefficientModuli].u_param;
