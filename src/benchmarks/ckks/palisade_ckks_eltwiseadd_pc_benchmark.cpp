@@ -40,7 +40,7 @@ EltwiseAddPlainCipherBenchmarkDescription::EltwiseAddPlainCipherBenchmarkDescrip
 
     // specify default arguments for this workload:
     hebench::cpp::WorkloadParams::EltwiseAdd default_workload_params;
-    default_workload_params.n = 1000;
+    default_workload_params.n() = 1000;
     default_workload_params.add<std::uint64_t>(EltwiseAddPlainCipherBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
     default_workload_params.add<std::uint64_t>(EltwiseAddPlainCipherBenchmarkDescription::DefaultNumCoefficientModuli, "MultiplicativeDepth");
     default_workload_params.add<std::uint64_t>(EltwiseAddPlainCipherBenchmarkDescription::DefaultScaleExponent, "ScaleBits");
@@ -113,12 +113,12 @@ EltwiseAddPlainCipherBenchmark::EltwiseAddPlainCipherBenchmark(PalisadeEngine &e
 
     hebench::cpp::WorkloadParams::EltwiseAdd w_params(bench_params);
 
-    if (w_params.n <= 0
-        || w_params.n > pmd / 2)
+    if (w_params.n() <= 0
+        || w_params.n() > pmd / 2)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid workload parameters. This workload only supports vectors up to size " + std::to_string(pmd / 2) + "."),
                                          HEBENCH_ECODE_INVALID_ARGS);
 
-    m_p_context = PalisadeContext::createCKKSContext(pmd, mult_depth, scale_bits, w_params.n);
+    m_p_context = PalisadeContext::createCKKSContext(pmd, mult_depth, scale_bits, w_params.n());
 }
 
 EltwiseAddPlainCipherBenchmark::~EltwiseAddPlainCipherBenchmark()

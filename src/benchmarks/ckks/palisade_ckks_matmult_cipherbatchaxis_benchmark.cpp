@@ -41,9 +41,9 @@ MatMultCipherBatchAxisBenchmarkDescription::MatMultCipherBatchAxisBenchmarkDescr
 
     // specify default arguments for this workload:
     hebench::cpp::WorkloadParams::MatrixMultiply default_workload_params;
-    default_workload_params.rows_M0 = 10;
-    default_workload_params.cols_M0 = 9;
-    default_workload_params.cols_M1 = 8;
+    default_workload_params.rows_M0() = 10;
+    default_workload_params.cols_M0() = 9;
+    default_workload_params.cols_M1() = 8;
     default_workload_params.add<std::uint64_t>(MatMultCipherBatchAxisBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
     default_workload_params.add<std::uint64_t>(MatMultCipherBatchAxisBenchmarkDescription::DefaultNumCoefficientModuli, "MultiplicativeDepth");
     default_workload_params.add<std::uint64_t>(MatMultCipherBatchAxisBenchmarkDescription::DefaultScaleExponent, "ScaleBits");
@@ -132,10 +132,10 @@ MatMultCipherBatchAxisBenchmark::MatMultCipherBatchAxisBenchmark(PalisadeEngine 
 
     // check values of the workload parameters and make sure they are supported by benchmark:
 
-    if (m_w_params.rows_M0 <= 0 || m_w_params.cols_M0 <= 0 || m_w_params.cols_M1 <= 0)
+    if (m_w_params.rows_M0() <= 0 || m_w_params.cols_M0() <= 0 || m_w_params.cols_M1() <= 0)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Matrix dimensions must be greater than 0."),
                                          HEBENCH_ECODE_INVALID_ARGS);
-    if (m_w_params.cols_M0 > pmd / 2)
+    if (m_w_params.cols_M0() > pmd / 2)
     {
         std::stringstream ss;
         ss << "Invalid workload parameters. This workload only supports matrices of dimensions (n x "
@@ -144,7 +144,7 @@ MatMultCipherBatchAxisBenchmark::MatMultCipherBatchAxisBenchmark(PalisadeEngine 
                                          HEBENCH_ECODE_INVALID_ARGS);
     } // end if
 
-    m_p_context = PalisadeContext::createCKKSContext(pmd, mult_depth, scale_bits, lbcrypto::HEStd_128_classic, m_w_params.cols_M0);
+    m_p_context = PalisadeContext::createCKKSContext(pmd, mult_depth, scale_bits, lbcrypto::HEStd_128_classic, m_w_params.cols_M0());
     m_p_context->EvalMultKeyGen();
 }
 
@@ -171,8 +171,8 @@ hebench::APIBridge::Handle MatMultCipherBatchAxisBenchmark::encode(const hebench
 
     std::vector<OpParamSamplePlain> retval;
     // - for latency operation, we have a single sample per data pack
-    retval.emplace_back(m_w_params.rows_M0, m_w_params.cols_M0); // op param 0
-    retval.emplace_back(m_w_params.cols_M0, m_w_params.cols_M1); // op param 1
+    retval.emplace_back(m_w_params.rows_M0(), m_w_params.cols_M0()); // op param 0
+    retval.emplace_back(m_w_params.cols_M0(), m_w_params.cols_M1()); // op param 1
 
     for (std::uint64_t op_param_i = 0; op_param_i < MatMultCipherBatchAxisBenchmarkDescription::OpParametersCount; ++op_param_i)
     {
