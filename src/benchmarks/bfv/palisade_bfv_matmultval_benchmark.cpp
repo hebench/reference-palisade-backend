@@ -344,8 +344,8 @@ void MatMultValBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebe
                         std::vector<std::int64_t> decoded =
                             encoded_result[row_i][col_i]->GetPackedValue();
                         p_data[m_w_params.cols_M1() * row_i + col_i] = decoded.empty() ?
-                                                                         0.0 :
-                                                                         decoded.front();
+                                                                           0.0 :
+                                                                           decoded.front();
                     } // end for
                 } // end for
             } // end if
