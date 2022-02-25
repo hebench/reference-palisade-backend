@@ -43,9 +43,9 @@ MatMultRowBenchmarkDescription::MatMultRowBenchmarkDescription()
 
     // specify default arguments for this workload:
     hebench::cpp::WorkloadParams::MatrixMultiply default_workload_params;
-    default_workload_params.rows_M0 = 10;
-    default_workload_params.cols_M0 = 9;
-    default_workload_params.cols_M1 = 8;
+    default_workload_params.rows_M0() = 10;
+    default_workload_params.cols_M0() = 9;
+    default_workload_params.cols_M1() = 8;
     default_workload_params.add<std::uint64_t>(MatMultRowBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
     default_workload_params.add<std::uint64_t>(MatMultRowBenchmarkDescription::DefaultNumCoefficientModuli, "MultiplicativeDepth");
     default_workload_params.add<std::uint64_t>(MatMultRowBenchmarkDescription::DefaultCoefficientModuliBits, "CoefficientModuliBits");
@@ -133,11 +133,11 @@ MatMultRowBenchmark::MatMultRowBenchmark(PalisadeEngine &engine,
 
     // check values of the workload parameters and make sure they are supported by benchmark:
 
-    if (m_w_params.rows_M0 <= 0 || m_w_params.cols_M0 <= 0 || m_w_params.cols_M1 <= 0)
+    if (m_w_params.rows_M0() <= 0 || m_w_params.cols_M0() <= 0 || m_w_params.cols_M1() <= 0)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Matrix dimensions must be greater than 0."),
                                          HEBENCH_ECODE_INVALID_ARGS);
 
-    if (m_w_params.cols_M0 > (pmd - 1) || m_w_params.cols_M0 * m_w_params.cols_M1 > (pmd))
+    if (m_w_params.cols_M0() > (pmd - 1) || m_w_params.cols_M0() * m_w_params.cols_M1() > (pmd))
     {
         std::stringstream ss;
         ss << "Invalid workload parameters. This workload only supports matrices of dimensions (a x b) x (b x c) where 'b' is at max " << (pmd - 1) << " and b * c is at max " << (pmd) << " (e.g. PolyModulusDegree).";
@@ -147,9 +147,9 @@ MatMultRowBenchmark::MatMultRowBenchmark(PalisadeEngine &engine,
 
     int n              = 0;
     int spacers        = 0;
-    m_encoding_spacers = pmd / m_w_params.cols_M0;
+    m_encoding_spacers = pmd / m_w_params.cols_M0();
     spacers            = m_encoding_spacers;
-    std::vector<int32_t> vec(m_w_params.cols_M0);
+    std::vector<int32_t> vec(m_w_params.cols_M0());
     std::generate(std::begin(vec), std::end(vec), [&n, &spacers] { return n += spacers; });
 
     m_p_context = PalisadeContext::createBFVContext(pmd, mult_depth, coeff_bits, lbcrypto::HEStd_128_classic);
@@ -185,17 +185,17 @@ std::vector<std::vector<std::int64_t>> MatMultRowBenchmark::prepareMatrix(const 
 
 std::vector<lbcrypto::Plaintext> MatMultRowBenchmark::encodeM0(const std::vector<std::vector<std::int64_t>> &data)
 {
-    assert(data.size() == m_w_params.rows_M0);
-    assert(!data.empty() && data.front().size() == m_w_params.cols_M0);
+    assert(data.size() == m_w_params.rows_M0());
+    assert(!data.empty() && data.front().size() == m_w_params.cols_M0());
 
     std::vector<int64_t> vec_a(m_p_context->getSlotCount(), 0);
-    std::vector<std::vector<int64_t>> vec_container_a(m_w_params.rows_M0);
+    std::vector<std::vector<int64_t>> vec_container_a(m_w_params.rows_M0());
 
-    for (size_t i = 0; i < m_w_params.rows_M0; i++)
+    for (size_t i = 0; i < m_w_params.rows_M0(); i++)
     {
-        for (size_t j = 0; j < m_w_params.cols_M0; j++)
+        for (size_t j = 0; j < m_w_params.cols_M0(); j++)
         {
-            for (size_t k = 0; k < m_w_params.cols_M1; k++)
+            for (size_t k = 0; k < m_w_params.cols_M1(); k++)
             {
                 vec_a[m_encoding_spacers * j + k] = static_cast<int64_t>(data[i][j]);
             }
@@ -212,15 +212,15 @@ std::vector<lbcrypto::Plaintext> MatMultRowBenchmark::encodeM0(const std::vector
 
 std::vector<lbcrypto::Plaintext> MatMultRowBenchmark::encodeM1(const std::vector<std::vector<std::int64_t>> &data)
 {
-    assert(data.size() == m_w_params.cols_M0);
-    assert(!data.empty() && data.front().size() == m_w_params.cols_M1);
+    assert(data.size() == m_w_params.cols_M0());
+    assert(!data.empty() && data.front().size() == m_w_params.cols_M1());
 
     std::vector<int64_t> vec_b(m_p_context->getSlotCount(), 0);
     std::vector<std::vector<int64_t>> vec_container_b(1);
 
-    for (size_t j = 0; j < m_w_params.cols_M0; j++)
+    for (size_t j = 0; j < m_w_params.cols_M0(); j++)
     {
-        for (size_t k = 0; k < m_w_params.cols_M1; k++)
+        for (size_t k = 0; k < m_w_params.cols_M1(); k++)
         {
             vec_b[m_encoding_spacers * j + k] = static_cast<int64_t>(data[j][k]);
         }
@@ -249,7 +249,7 @@ std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>
 MatMultRowBenchmark::doMatMultRow(const std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>> &M0,
                                   const std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>> &M1)
 {
-    std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>> retval(m_w_params.rows_M0);
+    std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>> retval(m_w_params.rows_M0());
 
     lbcrypto::Plaintext plain_zero                       = m_p_context->context()->MakePackedPlaintext(std::vector<int64_t>{ 0 });
     lbcrypto::Ciphertext<lbcrypto::DCRTPoly> cipher_zero = m_p_context->context()->Encrypt(m_p_context->publicKey(), plain_zero);
@@ -281,7 +281,7 @@ MatMultRowBenchmark::doMatMultRow(const std::vector<lbcrypto::Ciphertext<lbcrypt
     initializer(omp_priv = omp_orig)
 #pragma omp parallel for reduction(+ \
                                    : tmp_sum) num_threads(threads_at_level[1])
-        for (int32_t k = 1; k < m_w_params.cols_M0; k++)
+        for (int32_t k = 1; k < m_w_params.cols_M0(); k++)
         {
             tmp_sum += m_p_context->context()->EvalAtIndex(cipher_res_tmp, k * m_encoding_spacers);
         }
@@ -314,7 +314,7 @@ hebench::APIBridge::Handle MatMultRowBenchmark::encode(const hebench::APIBridge:
     const hebench::APIBridge::NativeDataBuffer &buffer_M0 = *raw_M0.p_buffers;
 
     std::vector<std::vector<std::int64_t>> matrix_data =
-        prepareMatrix(buffer_M0, m_w_params.rows_M0, m_w_params.cols_M0);
+        prepareMatrix(buffer_M0, m_w_params.rows_M0(), m_w_params.cols_M0());
     plain_M0.rows() = encodeM0(matrix_data);
 
     // encode M1
@@ -328,7 +328,7 @@ hebench::APIBridge::Handle MatMultRowBenchmark::encode(const hebench::APIBridge:
     const hebench::APIBridge::NativeDataBuffer &buffer_M1 = *raw_M1.p_buffers;
 
     matrix_data =
-        prepareMatrix(buffer_M1, m_w_params.cols_M0, m_w_params.cols_M1);
+        prepareMatrix(buffer_M1, m_w_params.cols_M0(), m_w_params.cols_M1());
 
     plain_M1.rows() = encodeM1(matrix_data);
 
@@ -347,10 +347,10 @@ void MatMultRowBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebe
     const std::vector<lbcrypto::Plaintext> &encoded_result =
         this->getEngine().template retrieveFromHandle<std::vector<lbcrypto::Plaintext>>(h_encoded_data, MatMultRowBenchmark::tagEncodedResult);
 
-    if (encoded_result.size() < m_w_params.rows_M0)
+    if (encoded_result.size() < m_w_params.rows_M0())
     {
         std::stringstream ss;
-        ss << "Invalid number of rows in encoded result. Expected " << m_w_params.rows_M0
+        ss << "Invalid number of rows in encoded result. Expected " << m_w_params.rows_M0()
            << ", but received " << encoded_result.size() << ".";
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()),
                                          HEBENCH_ECODE_INVALID_ARGS);
@@ -368,15 +368,15 @@ void MatMultRowBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebe
             {
                 // copy as much as we can
                 std::int64_t *p_data = reinterpret_cast<std::int64_t *>(buffer.p);
-                for (std::size_t row_i = 0; row_i < m_w_params.rows_M0; ++row_i)
+                for (std::size_t row_i = 0; row_i < m_w_params.rows_M0(); ++row_i)
                 {
                     std::vector<std::int64_t> decoded = encoded_result[row_i]->GetPackedValue();
-                    decoded.resize(m_w_params.cols_M1);
-                    std::vector<int64_t> test(m_w_params.cols_M0, 0);
+                    decoded.resize(m_w_params.cols_M1());
+                    std::vector<int64_t> test(m_w_params.cols_M0(), 0);
                     if (decoded.empty())
-                        std::copy(test.begin(), test.end(), p_data + (m_w_params.cols_M1 * row_i)); // p_data[m_w_params.cols_M1 * row_i] = test.data();
+                        std::copy(test.begin(), test.end(), p_data + (m_w_params.cols_M1() * row_i)); // p_data[m_w_params.cols_M1 * row_i] = test.data();
                     else
-                        std::copy(decoded.begin(), decoded.end(), p_data + (m_w_params.cols_M1 * row_i)); //p_data[m_w_params.cols_M1 * row_i] = decoded.data();
+                        std::copy(decoded.begin(), decoded.end(), p_data + (m_w_params.cols_M1() * row_i)); //p_data[m_w_params.cols_M1 * row_i] = decoded.data();
                 } // end for
             } // end if
         } // end if

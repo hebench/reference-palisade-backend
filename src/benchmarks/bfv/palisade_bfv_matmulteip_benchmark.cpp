@@ -43,9 +43,9 @@ MatMultEIPBenchmarkDescription::MatMultEIPBenchmarkDescription()
 
     // specify default arguments for this workload:
     hebench::cpp::WorkloadParams::MatrixMultiply default_workload_params;
-    default_workload_params.rows_M0 = 10;
-    default_workload_params.cols_M0 = 9;
-    default_workload_params.cols_M1 = 8;
+    default_workload_params.rows_M0() = 10;
+    default_workload_params.cols_M0() = 9;
+    default_workload_params.cols_M1() = 8;
     default_workload_params.add<std::uint64_t>(MatMultEIPBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
     default_workload_params.add<std::uint64_t>(MatMultEIPBenchmarkDescription::DefaultNumCoefficientModuli, "MultiplicativeDepth");
     default_workload_params.add<std::uint64_t>(MatMultEIPBenchmarkDescription::DefaultCoefficientModuliBits, "CoefficientModuliBits");
@@ -133,10 +133,10 @@ MatMultEIPBenchmark::MatMultEIPBenchmark(PalisadeEngine &engine,
 
     // check values of the workload parameters and make sure they are supported by benchmark:
 
-    if (m_w_params.rows_M0 <= 0 || m_w_params.cols_M0 <= 0 || m_w_params.cols_M1 <= 0)
+    if (m_w_params.rows_M0() <= 0 || m_w_params.cols_M0() <= 0 || m_w_params.cols_M1() <= 0)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Matrix dimensions must be greater than 0."),
                                          HEBENCH_ECODE_INVALID_ARGS);
-    if (m_w_params.cols_M0 > pmd - 1)
+    if (m_w_params.cols_M0() > pmd - 1)
     {
         std::stringstream ss;
         ss << "Invalid workload parameters. This workload only supports matrices of dimensions (n x "
@@ -145,7 +145,7 @@ MatMultEIPBenchmark::MatMultEIPBenchmark(PalisadeEngine &engine,
                                          HEBENCH_ECODE_INVALID_ARGS);
     } // end if
 
-    std::vector<int32_t> vec(m_w_params.cols_M0);
+    std::vector<int32_t> vec(m_w_params.cols_M0());
     std::iota(std::begin(vec), std::end(vec), 1);
     m_p_context = PalisadeContext::createBFVContext(pmd, mult_depth, coeff_bits, lbcrypto::HEStd_128_classic);
     m_p_context->EvalMultKeyGen();
@@ -194,20 +194,20 @@ std::vector<lbcrypto::Plaintext> MatMultEIPBenchmark::encodeMatrix(const std::ve
 
 std::vector<lbcrypto::Plaintext> MatMultEIPBenchmark::encodeM0(const std::vector<std::vector<std::int64_t>> &data)
 {
-    assert(data.size() == m_w_params.rows_M0);
-    assert(!data.empty() && data.front().size() == m_w_params.cols_M0);
+    assert(data.size() == m_w_params.rows_M0());
+    assert(!data.empty() && data.front().size() == m_w_params.cols_M0());
     return encodeMatrix(data);
 }
 
 std::vector<lbcrypto::Plaintext> MatMultEIPBenchmark::encodeM1(const std::vector<std::vector<std::int64_t>> &data)
 {
-    assert(data.size() == m_w_params.cols_M0);
+    assert(data.size() == m_w_params.cols_M0());
 
     // transpose
-    std::vector<std::vector<std::int64_t>> data_T(m_w_params.cols_M1, std::vector<std::int64_t>(m_w_params.cols_M0));
+    std::vector<std::vector<std::int64_t>> data_T(m_w_params.cols_M1(), std::vector<std::int64_t>(m_w_params.cols_M0()));
     for (size_t row_i = 0; row_i < data.size(); ++row_i)
     {
-        assert(data[row_i].size() == m_w_params.cols_M1);
+        assert(data[row_i].size() == m_w_params.cols_M1());
         for (size_t col_i = 0; col_i < data[row_i].size(); ++col_i)
             data_T[col_i][row_i] = data[row_i][col_i];
     } // end if
@@ -228,20 +228,20 @@ std::vector<std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>>
 MatMultEIPBenchmark::doMatMultEIP(const std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>> &M0,
                                   const std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>> &M1_T)
 {
-    std::vector<std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>> retval(m_w_params.rows_M0,
-                                                                              std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>(m_w_params.cols_M1));
+    std::vector<std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>> retval(m_w_params.rows_M0(),
+                                                                              std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>(m_w_params.cols_M1()));
 
     std::exception_ptr p_ex;
     std::mutex mtx_ex;
 #pragma omp parallel for collapse(2) num_threads(m_num_threads)
-    for (size_t i = 0; i < m_w_params.rows_M0; ++i)
+    for (size_t i = 0; i < m_w_params.rows_M0(); ++i)
     {
-        for (size_t j = 0; j < m_w_params.cols_M1; ++j)
+        for (size_t j = 0; j < m_w_params.cols_M1(); ++j)
         {
             try
             {
                 if (!p_ex)
-                    retval[i][j] = m_p_context->context()->EvalInnerProduct(M0[i], M1_T[j], pow(2, ceil(log2(m_w_params.cols_M0))));
+                    retval[i][j] = m_p_context->context()->EvalInnerProduct(M0[i], M1_T[j], pow(2, ceil(log2(m_w_params.cols_M0()))));
             }
             catch (...)
             {
@@ -275,7 +275,7 @@ hebench::APIBridge::Handle MatMultEIPBenchmark::encode(const hebench::APIBridge:
                                          HEBENCH_ECODE_INVALID_ARGS);
     const hebench::APIBridge::NativeDataBuffer &buffer_M0 = *raw_M0.p_buffers;
     std::vector<std::vector<std::int64_t>> matrix_data =
-        prepareMatrix(buffer_M0, m_w_params.rows_M0, m_w_params.cols_M0);
+        prepareMatrix(buffer_M0, m_w_params.rows_M0(), m_w_params.cols_M0());
     plain_M0.rows() = encodeM0(matrix_data);
 
     // encode M1
@@ -288,7 +288,7 @@ hebench::APIBridge::Handle MatMultEIPBenchmark::encode(const hebench::APIBridge:
                                          HEBENCH_ECODE_INVALID_ARGS);
     const hebench::APIBridge::NativeDataBuffer &buffer_M1 = *raw_M1.p_buffers;
     matrix_data =
-        prepareMatrix(buffer_M1, m_w_params.cols_M0, m_w_params.cols_M1);
+        prepareMatrix(buffer_M1, m_w_params.cols_M0(), m_w_params.cols_M1());
     plain_M1.rows() = encodeM1(matrix_data);
 
     // wrap our internal object into a handle to cross the boundary of the API Bridge
@@ -306,20 +306,20 @@ void MatMultEIPBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebe
     const std::vector<std::vector<lbcrypto::Plaintext>> &encoded_result =
         this->getEngine().template retrieveFromHandle<std::vector<std::vector<lbcrypto::Plaintext>>>(h_encoded_data, MatMultEIPBenchmark::tagEncodedResult);
 
-    if (encoded_result.size() < m_w_params.rows_M0)
+    if (encoded_result.size() < m_w_params.rows_M0())
     {
         std::stringstream ss;
-        ss << "Invalid number of rows in encoded result. Expected " << m_w_params.rows_M0
+        ss << "Invalid number of rows in encoded result. Expected " << m_w_params.rows_M0()
            << ", but received " << encoded_result.size() << ".";
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()),
                                          HEBENCH_ECODE_INVALID_ARGS);
     } // end if
-    for (std::size_t row_i = 0; row_i < m_w_params.rows_M0; ++row_i)
-        if (encoded_result[row_i].size() < m_w_params.cols_M1)
+    for (std::size_t row_i = 0; row_i < m_w_params.rows_M0(); ++row_i)
+        if (encoded_result[row_i].size() < m_w_params.cols_M1())
         {
             std::stringstream ss;
             ss << "Invalid number of columns for row " << row_i << " in encoded result. Expected "
-               << m_w_params.cols_M1 << ", but received " << encoded_result[row_i].size() << ".";
+               << m_w_params.cols_M1() << ", but received " << encoded_result[row_i].size() << ".";
             throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()),
                                              HEBENCH_ECODE_INVALID_ARGS);
         } // end if
@@ -336,15 +336,15 @@ void MatMultEIPBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebe
             {
                 // copy as much as we can
                 std::int64_t *p_data = reinterpret_cast<std::int64_t *>(buffer.p);
-                for (std::size_t row_i = 0; row_i < m_w_params.rows_M0; ++row_i)
+                for (std::size_t row_i = 0; row_i < m_w_params.rows_M0(); ++row_i)
                 {
-                    for (std::size_t col_i = 0; col_i < m_w_params.cols_M1; ++col_i)
+                    for (std::size_t col_i = 0; col_i < m_w_params.cols_M1(); ++col_i)
                     {
                         std::vector<std::int64_t> decoded =
                             encoded_result[row_i][col_i]->GetPackedValue();
-                        p_data[m_w_params.cols_M1 * row_i + col_i] = decoded.empty() ?
-                                                                         0.0 :
-                                                                         decoded.front();
+                        p_data[m_w_params.cols_M1() * row_i + col_i] = decoded.empty() ?
+                                                                           0.0 :
+                                                                           decoded.front();
                     } // end for
                 } // end for
             } // end if
