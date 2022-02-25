@@ -56,7 +56,7 @@ LogRegBenchmarkDescription::LogRegBenchmarkDescription(hebench::APIBridge::Categ
     m_descriptor.workload = hebench::APIBridge::Workload::LogisticRegression_PolyD3;
 
     hebench::cpp::WorkloadParams::LogisticRegression default_workload_params;
-    default_workload_params.n = 16;
+    default_workload_params.n() = 16;
     default_workload_params.add<std::uint64_t>(LogRegBenchmarkDescription::DefaultPolyModulusDegree, "PolyModulusDegree");
     default_workload_params.add<std::uint64_t>(LogRegBenchmarkDescription::DefaultNumCoefficientModuli, "MultiplicativeDepth");
     default_workload_params.add<std::uint64_t>(LogRegBenchmarkDescription::DefaultScaleExponent, "ScaleBits");
@@ -156,17 +156,17 @@ LogRegBenchmark::LogRegBenchmark(PalisadeEngine &engine,
 
     // check values of the workload parameters and make sure they are supported by benchmark:
 
-    if (m_w_params.n > pmd / 2)
+    if (m_w_params.n() > pmd / 2)
     {
         std::stringstream ss;
         ss << "Invalid workload parameters. This workload only supports feature vectors of size less than "
-           << pmd / 2 << ", but " << m_w_params.n << " specified.";
+           << pmd / 2 << ", but " << m_w_params.n() << " specified.";
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()),
                                          HEBENCH_ECODE_INVALID_ARGS);
     } // end if
 
     m_p_context = PalisadeContext::createCKKSContext(pmd, mult_depth, scale_bits,
-                                                     lbcrypto::HEStd_128_classic, m_w_params.n);
+                                                     lbcrypto::HEStd_128_classic, m_w_params.n());
     m_p_context->EvalMultKeyGen();
     m_p_context->EvalSumKeyGen();
 
@@ -563,7 +563,7 @@ hebench::APIBridge::Handle LogRegBenchmark::operate(hebench::APIBridge::Handle h
         try
         {
             if (!p_ex)
-                retval[batch_i] = doLogReg(cipher_W, cipher_b, cipher_input_batches[batch_i], m_w_params.n, th_lvl[1]);
+                retval[batch_i] = doLogReg(cipher_W, cipher_b, cipher_input_batches[batch_i], m_w_params.n(), th_lvl[1]);
         }
         catch (...)
         {
