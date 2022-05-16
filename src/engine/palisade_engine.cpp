@@ -127,7 +127,7 @@ void PalisadeEngine::init()
     addBenchmarkDescription(std::make_shared<pbe::ckks::MatMultRowBenchmarkDescription>());
 
     addBenchmarkDescription(std::make_shared<pbe::ckks::LogRegBenchmarkDescription>(hebench::APIBridge::Category::Latency));
-    addBenchmarkDescription(std::make_shared<pbe::ckks::LogRegBenchmarkDescription>(hebench::APIBridge::Category::Offline, 100));
+    addBenchmarkDescription(std::make_shared<pbe::ckks::LogRegBenchmarkDescription>(hebench::APIBridge::Category::Offline, 0));
 
     addBenchmarkDescription(std::make_shared<pbe::ckks::EltwiseAddPlainCipherBenchmarkDescription>());
     addBenchmarkDescription(std::make_shared<pbe::bfv::MatMultEIPBenchmarkDescription>());
