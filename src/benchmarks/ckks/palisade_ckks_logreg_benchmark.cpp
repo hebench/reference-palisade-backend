@@ -169,20 +169,7 @@ LogRegBenchmark::LogRegBenchmark(PalisadeEngine &engine,
                                                      lbcrypto::HEStd_128_classic, m_w_params.n());
     m_p_context->EvalMultKeyGen();
     m_p_context->EvalSumKeyGen();
-
-    std::size_t input_batch_size;
-    if (local_bench_desc.category == hebench::APIBridge::Category::Offline)
-    {
-        input_batch_size = (local_bench_desc.cat_params.offline.data_count[LogRegBenchmarkDescription::Index_X] > 0 ?
-                                local_bench_desc.cat_params.offline.data_count[LogRegBenchmarkDescription::Index_X] :
-                                m_p_context->getSlotCount());
-    } // end if
-    else
-        input_batch_size = 1;
-    std::vector<std::int32_t> il(input_batch_size);
-    for (std::uint32_t i = 0; i < il.size(); ++i)
-        il[i] = -1 - i;
-    m_p_context->EvalAtIndexKeyGen(il);
+    // Rotation Keys will be generated when knowledge of batch size is passed from remote
 }
 
 LogRegBenchmark::~LogRegBenchmark()
@@ -236,6 +223,12 @@ std::vector<std::vector<double>> LogRegBenchmark::prepareInputs(const hebench::A
                                                  HEBENCH_ECODE_INVALID_ARGS);
         } // end if
     } // end else if
+
+    // Generating Rotation Keys here as backend should now have knowledge of batch size passed from config or documentation
+    std::vector<std::int32_t> il(m_sample_size);
+    for (std::uint32_t i = 0; i < il.size(); ++i)
+        il[i] = -1 - i;
+    m_p_context->EvalAtIndexKeyGen(il);
 
     return retval;
 }
