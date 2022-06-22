@@ -4,9 +4,9 @@
 
 This guide will walk you through the steps of running the benchmark for the reference PALISADE backend. Note the default configuration for this backend may take an extended amount of time on some systems. If you'd like to reduce the amount of workloads run, please refer to the [Test Harness User Guide](https://hebench.github.io/frontend/test_harness_usage_guide.html) and the [Benchmark Configuration File Reference](https://hebench.github.io/frontend/config_file_reference.html) on modifying backend configuration files.
 
-1. Pick the PALISADE backend repository from the list of [published backends](https://hebench.github.io/hebench_published_backends.html), or visit direct link to [PALISADE backend repository](https://github.com/hebench/backend-cpu-palisade).
+1. Pick the PALISADE backend repository from the list of [published backends](https://hebench.github.io/hebench_published_backends.html), or visit direct link to [PALISADE backend repository](https://github.com/hebench/reference-palisade-backend).
 
-2. Check the [readme](https://github.com/hebench/backend-cpu-palisade/blob/main/README.md) for requirements to build the backend.
+2. Check the [readme](https://github.com/hebench/reference-palisade-backend/blob/main/README.md) for requirements to build the backend.
    Make sure the machine where the build will occur meets such requirements.
 
 3. Clone the repo to your local machine<b>*</b>.
@@ -17,7 +17,7 @@ This guide will walk you through the steps of running the benchmark for the refe
 
 ```bash
 cd $PALISADE_BACKEND
-git clone https://github.com/hebench/backend-cpu-palisade.git
+git clone https://github.com/hebench/reference-palisade-backend.git
 ```
 
 <b>*</b>_Users must have, at least, read access to the GitHub repository. Otherwise, cloning and/or building steps may fail._
@@ -27,10 +27,10 @@ git clone https://github.com/hebench/backend-cpu-palisade.git
    The following commands will create a build directory, pull down all the required dependencies, build all dependencies and the backend itself, and install the backend and Test Harness.
 
 ```bash
-cd $PALISADE_BACKEND/backend-cpu-palisade
+cd $PALISADE_BACKEND/reference-palisade-backend
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=$PALISADE_BACKEND/backend-cpu-palisade/install -DCMAKE_BUILD_TYPE=Release ..
+cmake -DCMAKE_INSTALL_PREFIX=$PALISADE_BACKEND/reference-palisade-backend/install -DCMAKE_BUILD_TYPE=Release ..
 make -j
 make install
 ```
@@ -38,25 +38,25 @@ make install
 5. Create a directory to hold the report of the benchmark we are about to run:
 
 ```bash
-mkdir $HOME/backend-cpu-palisade-report
+mkdir $HOME/reference-palisade-backend-report
 ```
 
 6. Navigate to directory where the test harness was installed:
 
 ```bash
-cd $PALISADE_BACKEND/backend-cpu-palisade/install/bin
+cd $PALISADE_BACKEND/reference-palisade-backend/install/bin
 ```
 
 7. Run the benchmark by executing test_harness while pointing it to the shared library containing the compiled PALISADE reference backend.
 
-   If these instructions have been followed correctly, the shared library for the PALISADE reference backend should have been installed in `$PALISADE_BACKEND/backend-cpu-palisade/install/lib` .
+   If these instructions have been followed correctly, the shared library for the PALISADE reference backend should have been installed in `$PALISADE_BACKEND/reference-palisade-backend/install/lib` .
 
 
 ```bash
-./test_harness --backend_lib_path $PALISADE_BACKEND/backend-cpu-palisade/install/lib/libhebench_palisade_backend.so --report_root_path $HOME/backend-cpu-palisade-report
+./test_harness --backend_lib_path $PALISADE_BACKEND/reference-palisade-backend/install/lib/libhebench_palisade_backend.so --report_root_path $HOME/reference-palisade-backend-report
 ```
 
-8. After the execution completes, the report will be saved to the specified location `$HOME/backend-cpu-palisade-report`.
+8. After the execution completes, the report will be saved to the specified location `$HOME/reference-palisade-backend-report`.
 
    The report is a collection of `CSV` files organized in directories that represent the benchmark parameters used for each workload benchmarked. Each report has a `report.csv` file and, if the corresponding benchmark completed successfully, a `summary.csv` file in the same location. View the `summary.csv` for the readable information about the benchmark, or `report.csv` if the benchmark failed for the cause of failure.
 
