@@ -108,4 +108,4 @@ The Test Harness will save the reports and summary of the run to the path specif
 
 ## Contributing <a name="contributing"></a>
 
-This project welcomes external contributions. To contribute to HEBench, see [CONTRIBUTING.md](CONTRIBUTING.md). We encourage feedback and suggestions via [Github Issues](https://github.com/hebench/backend-cpu-palisade/issues) as well as discussion via [Github Discussions](https://github.com/hebench/backend-cpu-palisade/discussions).
+This project welcomes external contributions. To contribute to HEBench, see [CONTRIBUTING.md](CONTRIBUTING.md). We encourage feedback and suggestions via [Github Issues](https://github.com/hebench/reference-palisade-backend/issues) as well as discussion via [Github Discussions](https://github.com/hebench/reference-palisade-backend/discussions).
