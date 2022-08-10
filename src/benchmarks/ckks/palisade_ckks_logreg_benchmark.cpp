@@ -34,7 +34,7 @@ LogRegBenchmarkDescription::LogRegBenchmarkDescription(hebench::APIBridge::Categ
     switch (category)
     {
     case hebench::APIBridge::Category::Latency:
-        m_descriptor.cat_params.latency.min_test_time_ms        = 0; // read from user
+        m_descriptor.cat_params.min_test_time_ms                = 0; // read from user
         m_descriptor.cat_params.latency.warmup_iterations_count = 1;
         break;
 
@@ -378,7 +378,7 @@ LogRegBenchmark::doLogReg(const lbcrypto::Ciphertext<lbcrypto::DCRTPoly> &w,
 // Provided methods - End
 //--------------------------
 
-hebench::APIBridge::Handle LogRegBenchmark::encode(const hebench::APIBridge::PackedData *p_parameters)
+hebench::APIBridge::Handle LogRegBenchmark::encode(const hebench::APIBridge::DataPackCollection *p_parameters)
 {
     if (p_parameters->pack_count != LogRegBenchmarkDescription::OpParamsCount)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid number of operation parameters detected in parameter pack. Expected "
@@ -403,7 +403,7 @@ hebench::APIBridge::Handle LogRegBenchmark::encode(const hebench::APIBridge::Pac
                                                                            encodeInputsFromDataPack(pack_X)));
 }
 
-void LogRegBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebench::APIBridge::PackedData *p_native)
+void LogRegBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebench::APIBridge::DataPackCollection *p_native)
 {
     // able to decode only encoded result
 

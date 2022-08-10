@@ -126,7 +126,7 @@ EltwiseAddPlainCipherBenchmark::~EltwiseAddPlainCipherBenchmark()
     // nothing needed in this example
 }
 
-hebench::APIBridge::Handle EltwiseAddPlainCipherBenchmark::encode(const hebench::APIBridge::PackedData *p_parameters)
+hebench::APIBridge::Handle EltwiseAddPlainCipherBenchmark::encode(const hebench::APIBridge::DataPackCollection *p_parameters)
 {
     // To be compatible with decode and the method signature, this encode bundles
     // multiple data packs inside a single handle. Since in this example we are
@@ -172,7 +172,7 @@ hebench::APIBridge::Handle EltwiseAddPlainCipherBenchmark::encode(const hebench:
                                                                      std::move(params)); // constructor parameters
 }
 
-void EltwiseAddPlainCipherBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebench::APIBridge::PackedData *p_native)
+void EltwiseAddPlainCipherBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebench::APIBridge::DataPackCollection *p_native)
 {
     // This decode is able to decode multiple data packs bundled in a single handle
 
