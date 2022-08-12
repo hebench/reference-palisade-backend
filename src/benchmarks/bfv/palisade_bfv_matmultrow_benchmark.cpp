@@ -34,7 +34,7 @@ MatMultRowBenchmarkDescription::MatMultRowBenchmarkDescription()
     m_descriptor.category          = hebench::APIBridge::Category::Latency;
     m_descriptor.cipher_param_mask = HEBENCH_HE_PARAM_FLAGS_ALL_CIPHER;
     //
-    m_descriptor.cat_params.latency.min_test_time_ms        = 0;
+    m_descriptor.cat_params.min_test_time_ms                = 0;
     m_descriptor.cat_params.latency.warmup_iterations_count = 1;
     //
     m_descriptor.scheme   = HEBENCH_HE_SCHEME_BFV;
@@ -298,7 +298,7 @@ MatMultRowBenchmark::doMatMultRow(const std::vector<lbcrypto::Ciphertext<lbcrypt
 // Provided methods - End
 //--------------------------
 
-hebench::APIBridge::Handle MatMultRowBenchmark::encode(const hebench::APIBridge::PackedData *p_parameters)
+hebench::APIBridge::Handle MatMultRowBenchmark::encode(const hebench::APIBridge::DataPackCollection *p_parameters)
 {
     std::pair<InternalMatrixPlain, InternalMatrixPlain> params =
         std::make_pair<InternalMatrixPlain, InternalMatrixPlain>(InternalMatrixPlain(0), InternalMatrixPlain(1));
@@ -338,7 +338,7 @@ hebench::APIBridge::Handle MatMultRowBenchmark::encode(const hebench::APIBridge:
                                                                      std::move(params)); // constructor parameters
 }
 
-void MatMultRowBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebench::APIBridge::PackedData *p_native)
+void MatMultRowBenchmark::decode(hebench::APIBridge::Handle h_encoded_data, hebench::APIBridge::DataPackCollection *p_native)
 {
     // able to decode only encoded result
 
