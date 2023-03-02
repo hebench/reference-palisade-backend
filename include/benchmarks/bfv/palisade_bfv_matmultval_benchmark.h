@@ -24,6 +24,7 @@ public:
 
     static constexpr const char *AlgorithmName        = "MatMultVal";
     static constexpr const char *AlgorithmDescription = "One matrix row per ciphertext, using PALISADE EvalSum";
+    static constexpr std::size_t NumOpParams          = 2;
 
     // HE specific parameters
     static constexpr std::size_t DefaultPolyModulusDegree    = 8192;
@@ -80,14 +81,12 @@ public:
                hebench::APIBridge::Handle *p_local_data, std::uint64_t count) override;
 
     hebench::APIBridge::Handle operate(hebench::APIBridge::Handle h_remote_packed,
-                                       const hebench::APIBridge::ParameterIndexer *p_param_indexers) override;
+                                       const hebench::APIBridge::ParameterIndexer *p_param_indexers,
+                                       std::uint64_t indexers_count) override;
 
     std::int64_t classTag() const override { return BaseBenchmark::classTag() | MatMultValBenchmark::tag; }
 
 private:
-    static constexpr std::uint64_t ParametersCount       = 2; // number of parameters for this operation
-    static constexpr std::uint64_t ResultComponentsCount = 1; // number of components of result for this operation
-
     static constexpr std::int64_t tagEncodedResult   = 0x20;
     static constexpr std::int64_t tagEncryptedResult = 0x10;
 

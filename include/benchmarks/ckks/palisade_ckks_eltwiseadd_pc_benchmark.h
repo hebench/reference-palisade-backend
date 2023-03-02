@@ -20,13 +20,27 @@ public:
     HEBERROR_DECLARE_CLASS_NAME(EltwiseAddPlainCipherBenchmarkDescription)
 
 public:
-    // This workload (EltwiseAdd) requires only 1 parameters, and we add 3 encryption params
-    static constexpr std::uint64_t NumWorkloadParams = 4;
+    static constexpr std::uint64_t NumOpParams           = 2; // number of operands for this workload
+    static constexpr std::uint64_t ResultComponentsCount = 1; // number of components of result for this operation
+
+    // Flexible workload params
 
     // HE specific parameters
     static constexpr std::size_t DefaultPolyModulusDegree    = 8192;
     static constexpr std::size_t DefaultNumCoefficientModuli = 1;
     static constexpr int DefaultScaleExponent                = 40;
+
+    // This workload (EltwiseAdd) requires only 1 flexible parameters, and we add 3 encryption params
+    enum : std::uint64_t
+    {
+        Index_WParamsStart = 0,
+        Index_n            = Index_WParamsStart,
+        Index_ExtraWParamsStart,
+        Index_PolyModulusDegree = Index_ExtraWParamsStart,
+        Index_NumCoefficientModuli,
+        Index_ScaleExponent,
+        NumWorkloadParams
+    };
 
     EltwiseAddPlainCipherBenchmarkDescription();
     ~EltwiseAddPlainCipherBenchmarkDescription() override;
@@ -61,14 +75,12 @@ public:
                hebench::APIBridge::Handle *p_local_data, std::uint64_t count) override;
 
     hebench::APIBridge::Handle operate(hebench::APIBridge::Handle h_remote_packed,
-                                       const hebench::APIBridge::ParameterIndexer *p_param_indexers) override;
+                                       const hebench::APIBridge::ParameterIndexer *p_param_indexers,
+                                       std::uint64_t indexers_count) override;
 
     std::int64_t classTag() const override { return BaseBenchmark::classTag() | EltwiseAddPlainCipherBenchmark::tag; }
 
 private:
-    static constexpr std::uint64_t ParametersCount       = 2; // number of parameters for this operation
-    static constexpr std::uint64_t ResultComponentsCount = 1; // number of components of result for this operation
-
     // used to bundle a collection of operation parameters
     struct InternalParams
     {

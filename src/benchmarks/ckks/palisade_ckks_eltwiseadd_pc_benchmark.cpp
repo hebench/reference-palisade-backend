@@ -27,8 +27,8 @@ EltwiseAddPlainCipherBenchmarkDescription::EltwiseAddPlainCipherBenchmarkDescrip
     m_descriptor.workload                         = hebench::APIBridge::Workload::EltwiseAdd;
     m_descriptor.data_type                        = hebench::APIBridge::DataType::Float64;
     m_descriptor.category                         = hebench::APIBridge::Category::Offline;
-    m_descriptor.cat_params.offline.data_count[0] = 2;
-    m_descriptor.cat_params.offline.data_count[1] = 5;
+    m_descriptor.cat_params.offline.data_count[0] = 0;
+    m_descriptor.cat_params.offline.data_count[1] = 0;
     m_descriptor.cipher_param_mask                = 1 << 1;
     //
     m_descriptor.scheme   = HEBENCH_HE_SCHEME_CKKS;
@@ -57,9 +57,9 @@ std::string EltwiseAddPlainCipherBenchmarkDescription::getBenchmarkDescription(c
 {
     assert(p_w_params->count >= EltwiseAddPlainCipherBenchmarkDescription::NumWorkloadParams);
 
-    std::size_t pmd        = p_w_params->params[1].u_param;
-    std::size_t mult_depth = p_w_params->params[2].u_param;
-    std::size_t scale_bits = p_w_params->params[3].u_param;
+    std::size_t pmd        = p_w_params->params[Index_PolyModulusDegree].u_param;
+    std::size_t mult_depth = p_w_params->params[Index_NumCoefficientModuli].u_param;
+    std::size_t scale_bits = p_w_params->params[Index_ScaleExponent].u_param;
 
     std::stringstream ss;
     ss << ", Encryption parameters" << std::endl
@@ -105,9 +105,9 @@ EltwiseAddPlainCipherBenchmark::EltwiseAddPlainCipherBenchmark(PalisadeEngine &e
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid workload parameters. This workload requires " + std::to_string(EltwiseAddPlainCipherBenchmarkDescription::NumWorkloadParams) + " parameters."),
                                          HEBENCH_ECODE_INVALID_ARGS);
 
-    std::size_t pmd        = bench_params.params[1].u_param;
-    std::size_t mult_depth = bench_params.params[2].u_param;
-    std::size_t scale_bits = bench_params.params[3].u_param;
+    std::size_t pmd        = bench_params.params[EltwiseAddPlainCipherBenchmarkDescription::Index_PolyModulusDegree].u_param;
+    std::size_t mult_depth = bench_params.params[EltwiseAddPlainCipherBenchmarkDescription::Index_NumCoefficientModuli].u_param;
+    std::size_t scale_bits = bench_params.params[EltwiseAddPlainCipherBenchmarkDescription::Index_ScaleExponent].u_param;
 
     // check values of the workload parameters and make sure they are supported by benchmark:
 
@@ -238,8 +238,6 @@ void EltwiseAddPlainCipherBenchmark::decode(hebench::APIBridge::Handle h_encoded
 
 hebench::APIBridge::Handle EltwiseAddPlainCipherBenchmark::encrypt(hebench::APIBridge::Handle h_encoded_parameters)
 {
-    //PalisadeEngine &engine = reinterpret_cast<PalisadeEngine &>(this->getEngine());
-
     if ((h_encoded_parameters.tag & InternalParams::tagPlaintext) != InternalParams::tagPlaintext)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid tag detected for handle 'h_encoded_parameters'."),
                                          HEBENCH_ECODE_INVALID_ARGS);
@@ -279,8 +277,6 @@ hebench::APIBridge::Handle EltwiseAddPlainCipherBenchmark::encrypt(hebench::APIB
 
 hebench::APIBridge::Handle EltwiseAddPlainCipherBenchmark::decrypt(hebench::APIBridge::Handle h_encrypted_data)
 {
-    //PalisadeEngine &engine = reinterpret_cast<PalisadeEngine &>(this->getEngine());
-
     if ((h_encrypted_data.tag & InternalParams::tagCiphertext) != InternalParams::tagCiphertext)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid tag detected for handle 'h_encrypted_data'."),
                                          HEBENCH_ECODE_INVALID_ARGS);
@@ -402,9 +398,16 @@ void EltwiseAddPlainCipherBenchmark::store(hebench::APIBridge::Handle h_remote_d
 }
 
 hebench::APIBridge::Handle EltwiseAddPlainCipherBenchmark::operate(hebench::APIBridge::Handle h_remote_packed,
-                                                                   const hebench::APIBridge::ParameterIndexer *p_param_indexers)
+                                                                   const hebench::APIBridge::ParameterIndexer *p_param_indexers,
+                                                                   std::uint64_t indexers_count)
 {
-    //PalisadeEngine &engine = reinterpret_cast<PalisadeEngine &>(this->getEngine());
+    if (indexers_count < EltwiseAddPlainCipherBenchmarkDescription::NumOpParams)
+    {
+        std::stringstream ss;
+        ss << "Invalid number of indexers. Expected " << EltwiseAddPlainCipherBenchmarkDescription::NumOpParams
+           << ", but " << indexers_count << " received." << std::endl;
+        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()), HEBENCH_ECODE_INVALID_ARGS);
+    } // end if
 
     if ((h_remote_packed.tag & (InternalParams::tagCiphertext | InternalParams::tagPlaintext)) != (InternalParams::tagCiphertext | InternalParams::tagPlaintext))
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid tag detected for handle 'h_remote_packed'."),
@@ -412,10 +415,10 @@ hebench::APIBridge::Handle EltwiseAddPlainCipherBenchmark::operate(hebench::APIB
     const std::vector<InternalParams> &loaded_data =
         this->getEngine().template retrieveFromHandle<std::vector<InternalParams>>(h_remote_packed);
 
-    assert(loaded_data.size() == ParametersCount);
+    assert(loaded_data.size() == EltwiseAddPlainCipherBenchmarkDescription::NumOpParams);
 
     // retrieve the plaintext parameter and the ciphertext parameter
-    const std::vector<std::shared_ptr<void>> *p_params[ParametersCount] = { nullptr, nullptr };
+    const std::vector<std::shared_ptr<void>> *p_params[EltwiseAddPlainCipherBenchmarkDescription::NumOpParams] = { nullptr, nullptr };
 
     for (std::size_t i = 0; i < loaded_data.size(); ++i)
     {
@@ -428,7 +431,7 @@ hebench::APIBridge::Handle EltwiseAddPlainCipherBenchmark::operate(hebench::APIB
     }
 
     // validate extracted parameters
-    for (std::size_t i = 0; i < ParametersCount; ++i)
+    for (std::size_t i = 0; i < EltwiseAddPlainCipherBenchmarkDescription::NumOpParams; ++i)
     {
         if (!p_params[i])
         {
@@ -440,7 +443,7 @@ hebench::APIBridge::Handle EltwiseAddPlainCipherBenchmark::operate(hebench::APIB
     }
 
     std::uint64_t results_count = 1;
-    for (std::size_t param_i = 0; param_i < ParametersCount; ++param_i)
+    for (std::size_t param_i = 0; param_i < EltwiseAddPlainCipherBenchmarkDescription::NumOpParams; ++param_i)
     {
         if (p_param_indexers[param_i].value_index >= p_params[param_i]->size())
         {
@@ -462,7 +465,7 @@ hebench::APIBridge::Handle EltwiseAddPlainCipherBenchmark::operate(hebench::APIB
     }
 
     // allocate space for results
-    std::vector<InternalParams> results(ResultComponentsCount);
+    std::vector<InternalParams> results(EltwiseAddPlainCipherBenchmarkDescription::ResultComponentsCount);
     results.front().samples.resize(results_count); // ResultComponentsCount == 1 for this workload
     results.front().param_position = 0; // result component
     results.front().tag            = InternalParams::tagCiphertext;
