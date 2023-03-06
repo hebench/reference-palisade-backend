@@ -447,8 +447,16 @@ void MatMultRowBenchmark::store(hebench::APIBridge::Handle h_remote_data,
 }
 
 hebench::APIBridge::Handle MatMultRowBenchmark::operate(hebench::APIBridge::Handle h_remote_packed,
-                                                        const hebench::APIBridge::ParameterIndexer *p_param_indexers)
+                                                        const hebench::APIBridge::ParameterIndexer *p_param_indexers,
+                                                        std::uint64_t indexers_count)
 {
+    if (indexers_count < MatMultRowBenchmarkDescription::NumOpParams)
+    {
+        std::stringstream ss;
+        ss << "Invalid number of indexers. Expected " << MatMultRowBenchmarkDescription::NumOpParams
+           << ", but " << indexers_count << " received." << std::endl;
+        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()), HEBENCH_ECODE_INVALID_ARGS);
+    } // end if
     const std::pair<InternalMatrixCipher, InternalMatrixCipher> &loaded_data =
         this->getEngine().template retrieveFromHandle<std::pair<InternalMatrixCipher, InternalMatrixCipher>>(h_remote_packed);
 
@@ -456,7 +464,7 @@ hebench::APIBridge::Handle MatMultRowBenchmark::operate(hebench::APIBridge::Hand
            && loaded_data.second.paramPosition() == 1);
 
     // validate indexers
-    for (std::size_t param_i = 0; param_i < ParametersCount; ++param_i)
+    for (std::size_t param_i = 0; param_i < MatMultRowBenchmarkDescription::NumOpParams; ++param_i)
     {
         if (p_param_indexers[param_i].value_index > 0 || p_param_indexers[param_i].batch_size != 1)
         {

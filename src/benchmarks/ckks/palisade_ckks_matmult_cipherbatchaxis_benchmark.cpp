@@ -165,7 +165,7 @@ hebench::APIBridge::Handle MatMultCipherBatchAxisBenchmark::encode(const hebench
 {
     // since this benchmark is cipher-cipher, encode receives 2 parameter packs from test harness
 
-    if (p_parameters->pack_count != MatMultCipherBatchAxisBenchmarkDescription::OpParametersCount)
+    if (p_parameters->pack_count != MatMultCipherBatchAxisBenchmarkDescription::NumOpParams)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Expected 2 parameter packs, but " + std::to_string(p_parameters->pack_count) + " received."),
                                          HEBENCH_ECODE_INVALID_ARGS);
 
@@ -174,7 +174,7 @@ hebench::APIBridge::Handle MatMultCipherBatchAxisBenchmark::encode(const hebench
     retval.emplace_back(m_w_params.rows_M0(), m_w_params.cols_M0()); // op param 0
     retval.emplace_back(m_w_params.cols_M0(), m_w_params.cols_M1()); // op param 1
 
-    for (std::uint64_t op_param_i = 0; op_param_i < MatMultCipherBatchAxisBenchmarkDescription::OpParametersCount; ++op_param_i)
+    for (std::uint64_t op_param_i = 0; op_param_i < MatMultCipherBatchAxisBenchmarkDescription::NumOpParams; ++op_param_i)
     {
         // find data pack corresponding to this op parameter
         const hebench::APIBridge::DataPack &data_pack = MatMultCipherBatchAxisBenchmark::findDataPack(*p_parameters, op_param_i);
@@ -342,9 +342,17 @@ void MatMultCipherBatchAxisBenchmark::store(hebench::APIBridge::Handle h_remote_
 }
 
 hebench::APIBridge::Handle MatMultCipherBatchAxisBenchmark::operate(hebench::APIBridge::Handle h_remote_packed,
-                                                                    const hebench::APIBridge::ParameterIndexer *p_param_indexers)
+                                                                    const hebench::APIBridge::ParameterIndexer *p_param_indexers,
+                                                                    std::uint64_t indexers_count)
 {
-    for (std::size_t i = 0; i < MatMultCipherBatchAxisBenchmarkDescription::OpParametersCount; ++i)
+    if (indexers_count < MatMultCipherBatchAxisBenchmarkDescription::NumOpParams)
+    {
+        std::stringstream ss;
+        ss << "Invalid number of indexers. Expected " << MatMultCipherBatchAxisBenchmarkDescription::NumOpParams
+           << ", but " << indexers_count << " received." << std::endl;
+        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()), HEBENCH_ECODE_INVALID_ARGS);
+    } // end if
+    for (std::size_t i = 0; i < MatMultCipherBatchAxisBenchmarkDescription::NumOpParams; ++i)
     {
         if (p_param_indexers[i].value_index > 0)
             throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Unexpected index in parameter indexer."),
