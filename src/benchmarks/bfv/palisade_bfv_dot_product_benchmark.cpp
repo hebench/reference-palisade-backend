@@ -36,8 +36,8 @@ DotProductBenchmarkDescription::DotProductBenchmarkDescription(hebench::APIBridg
         break;
 
     case hebench::APIBridge::Category::Offline:
-        m_descriptor.cat_params.offline.data_count[0] = 10;
-        m_descriptor.cat_params.offline.data_count[1] = 10;
+        m_descriptor.cat_params.offline.data_count[0] = 0;
+        m_descriptor.cat_params.offline.data_count[1] = 0;
         break;
 
     default:
@@ -275,8 +275,16 @@ void DotProductBenchmark::store(hebench::APIBridge::Handle remote_data,
 }
 
 hebench::APIBridge::Handle DotProductBenchmark::operate(hebench::APIBridge::Handle h_remote_packed,
-                                                        const hebench::APIBridge::ParameterIndexer *p_param_indexers)
+                                                        const hebench::APIBridge::ParameterIndexer *p_param_indexers,
+                                                        std::uint64_t indexers_count)
 {
+    if (indexers_count < DotProductBenchmarkDescription::NumOpParams)
+    {
+        std::stringstream ss;
+        ss << "Invalid number of indexers. Expected " << DotProductBenchmarkDescription::NumOpParams
+           << ", but " << indexers_count << " received." << std::endl;
+        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()), HEBENCH_ECODE_INVALID_ARGS);
+    } // end if
     // retrieve our internal format object from the handle
     const std::vector<std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>> &params =
         this->getEngine().retrieveFromHandle<std::vector<std::vector<lbcrypto::Ciphertext<lbcrypto::DCRTPoly>>>>(h_remote_packed);

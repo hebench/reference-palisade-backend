@@ -380,12 +380,12 @@ LogRegBenchmark::doLogReg(const lbcrypto::Ciphertext<lbcrypto::DCRTPoly> &w,
 
 hebench::APIBridge::Handle LogRegBenchmark::encode(const hebench::APIBridge::DataPackCollection *p_parameters)
 {
-    if (p_parameters->pack_count != LogRegBenchmarkDescription::OpParamsCount)
+    if (p_parameters->pack_count != LogRegBenchmarkDescription::NumOpParams)
         throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("Invalid number of operation parameters detected in parameter pack. Expected "
-                                                            + std::to_string(LogRegBenchmarkDescription::OpParamsCount) + "."),
+                                                            + std::to_string(LogRegBenchmarkDescription::NumOpParams) + "."),
                                          HEBENCH_ECODE_INVALID_ARGS);
     // validate all op parameters are in this pack
-    for (std::uint64_t param_i = 0; param_i < LogRegBenchmarkDescription::OpParamsCount; ++param_i)
+    for (std::uint64_t param_i = 0; param_i < LogRegBenchmarkDescription::NumOpParams; ++param_i)
     {
         if (findDataPackIndex(*p_parameters, param_i) >= p_parameters->pack_count)
             throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS("DataPack for Logistic Regression inference operation parameter " + std::to_string(param_i) + " expected, but not found in 'p_parameters'."),
@@ -501,8 +501,16 @@ void LogRegBenchmark::store(hebench::APIBridge::Handle h_remote_data,
 }
 
 hebench::APIBridge::Handle LogRegBenchmark::operate(hebench::APIBridge::Handle h_remote_packed,
-                                                    const hebench::APIBridge::ParameterIndexer *p_param_indexers)
+                                                    const hebench::APIBridge::ParameterIndexer *p_param_indexers,
+                                                    std::uint64_t indexers_count)
 {
+    if (indexers_count < LogRegBenchmarkDescription::NumOpParams)
+    {
+        std::stringstream ss;
+        ss << "Invalid number of indexers. Expected " << LogRegBenchmarkDescription::NumOpParams
+           << ", but " << indexers_count << " received." << std::endl;
+        throw hebench::cpp::HEBenchError(HEBERROR_MSG_CLASS(ss.str()), HEBENCH_ECODE_INVALID_ARGS);
+    } // end if
     EncryptedOpParams &remote =
         this->getEngine().retrieveFromHandle<EncryptedOpParams>(h_remote_packed, tagEncryptedOpParams);
 
